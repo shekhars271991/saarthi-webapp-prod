@@ -1,79 +1,69 @@
 #!/bin/bash
 
-# SaarthiEV Deployment Script for EC2
-# Run this script after cloning your repository
+# SaarthiEV Docker Deployment Script for EC2
+# Run this script on EC2 after uploading files with createbuilds.sh
 
-echo "🚀 Deploying SaarthiEV to production..."
+echo "🚀 Deploying SaarthiEV with Docker on EC2..."
 echo ""
 
 # Check if we're in the right directory
-if [ ! -f "package.json" ] && [ ! -d "saarthi-backend" ] && [ ! -d "saarthi-webapp" ]; then
-    echo "❌ Please run this script from the project root directory"
+if [ ! -f "docker-compose.prod.yml" ]; then
+    echo "❌ docker-compose.prod.yml not found. Please run this script from the project root directory"
     exit 1
 fi
 
-# Create logs directory
-echo "📁 Creating logs directory..."
-mkdir -p logs
-
-# Setup environment files
-echo "🔧 Setting up environment files..."
-
-# Backend environment
-if [ ! -f "saarthi-backend/.env" ]; then
-    echo "📝 Creating backend .env file..."
-    cp env.production.example saarthi-backend/.env
-    echo "⚠️  Please edit saarthi-backend/.env with your actual values"
-    echo "⚠️  Make sure to update MONGODB_URI and other variables"
+# Check if Docker is installed and running
+echo "🐳 Checking Docker..."
+if ! command -v docker &> /dev/null; then
+    echo "📦 Installing Docker..."
+    sudo apt update
+    sudo apt install -y docker.io docker-compose
+    sudo systemctl start docker
+    sudo systemctl enable docker
+    sudo usermod -aG docker $USER
+    echo "⚠️  Please log out and log back in for Docker permissions to take effect"
+    echo "⚠️  Then run this script again"
+    exit 1
 fi
 
-# Frontend environment
-if [ ! -f "saarthi-webapp/.env.local" ]; then
-    echo "📝 Creating frontend .env file..."
-    cp env.production.example saarthi-webapp/.env.local
-    echo "⚠️  Please edit saarthi-webapp/.env.local with your actual values"
-    echo "⚠️  Make sure to update NEXT_PUBLIC_API_URL with your EC2 IP"
+if ! docker info > /dev/null 2>&1; then
+    echo "🔧 Starting Docker..."
+    sudo systemctl start docker
 fi
 
-# Validate backend environment
-echo "🔍 Validating backend environment..."
-if ! grep -q "MONGODB_URI=" saarthi-backend/.env; then
-    echo "⚠️  Warning: MONGODB_URI not found in backend .env file"
+echo "✅ Docker is ready"
+
+# Check if environment file exists
+if [ ! -f ".env.docker" ]; then
+    echo "📝 Creating Docker environment file..."
+    cat > .env.docker << 'ENVEOF'
+JWT_SECRET=your-super-secure-jwt-secret-change-this-in-production
+GOOGLE_MAPS_API_KEY=your-google-maps-api-key
+ENVEOF
+    echo "⚠️  Please edit .env.docker with your actual values"
+    echo "⚠️  Run: nano .env.docker"
+    exit 1
 fi
 
-# Install backend dependencies
-echo "📦 Installing backend dependencies..."
-cd saarthi-backend
-npm install --production
-cd ..
+# Stop existing containers
+echo "🛑 Stopping existing containers..."
+docker-compose -f docker-compose.prod.yml --env-file .env.docker down
 
-# Install frontend dependencies and build
-echo "📦 Installing frontend dependencies..."
-cd saarthi-webapp
-npm install
-echo "🏗️  Building frontend for production..."
-npm run build
-cd ..
+# Build and start services
+echo "🏗️  Building and starting services..."
+docker-compose -f docker-compose.prod.yml --env-file .env.docker up -d --build
 
-# Stop existing PM2 processes
-echo "🛑 Stopping existing processes..."
-pm2 stop ecosystem.config.js 2>/dev/null || true
-pm2 delete ecosystem.config.js 2>/dev/null || true
-
-# Start services with PM2
-echo "🚀 Starting services with PM2..."
-pm2 start ecosystem.config.js
-
-# Wait a moment for services to start
-sleep 5
+# Wait for services to start
+echo "⏳ Waiting for services to start..."
+sleep 10
 
 # Check service status
 echo "🔍 Checking service status..."
-pm2 status
+docker-compose -f docker-compose.prod.yml ps
 
-# Save PM2 configuration
-pm2 save
-pm2 startup
+# Show logs
+echo "📊 Recent logs:"
+docker-compose -f docker-compose.prod.yml logs --tail=10
 
 echo ""
 echo "✅ Deployment complete!"
@@ -81,13 +71,10 @@ echo ""
 echo "📍 Your services should be running on:"
 echo "   Backend API:  http://localhost:4000"
 echo "   Frontend App: http://localhost:3000"
+echo "   MongoDB:      localhost:27017"
 echo ""
-echo "🔍 Check status with: pm2 status"
-echo "📊 View logs with: pm2 logs"
-echo "🔄 Restart with: pm2 restart ecosystem.config.js"
-echo ""
-echo "⚠️  Don't forget to:"
-echo "   1. Update your .env files with actual values"
-echo "   2. Configure your EC2 security groups (ports 3000, 4000)"
-echo "   3. Set up a domain name and SSL certificate"
+echo "🔍 Useful commands:"
+echo "   View logs: docker-compose -f docker-compose.prod.yml logs -f"
+echo "   Stop services: docker-compose -f docker-compose.prod.yml down"
+echo "   Restart services: docker-compose -f docker-compose.prod.yml restart"
 echo ""
