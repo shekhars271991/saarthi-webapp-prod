@@ -27,18 +27,31 @@ interface LanguageProviderProps {
 }
 
 export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) => {
-  const [language, setLanguageState] = useState<Language>(() => {
-    // Initialize with saved language or default
+  // Always start with default language to avoid hydration mismatch
+  const [language, setLanguageState] = useState<Language>(cityConfig.defaultLanguage);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    // Mark as client-side and load saved language
+    setIsClient(true);
+    loadLanguage();
+  }, []);
+
+  const loadLanguage = () => {
     if (typeof window !== 'undefined') {
       const savedLanguage = localStorage.getItem('language') as Language;
       if (savedLanguage && cityConfig.availableLanguages.includes(savedLanguage as AvailableLanguage)) {
-        return savedLanguage;
+        setLanguageState(savedLanguage);
+        return;
       }
     }
-    return cityConfig.defaultLanguage;
-  });
+    // If no saved language, use default
+    setLanguageState(cityConfig.defaultLanguage);
+  };
 
   useEffect(() => {
+    if (!isClient) return;
+
     // Listen for storage changes (in case language is changed in another tab)
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'language' && e.newValue) {
@@ -49,94 +62,45 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
       }
     };
 
-    // Load language preference from localStorage on mount and navigation
-    const loadLanguage = () => {
-      if (typeof window !== 'undefined') {
-        const savedLanguage = localStorage.getItem('language') as Language;
-        if (savedLanguage && cityConfig.availableLanguages.includes(savedLanguage as AvailableLanguage)) {
-          setLanguageState(savedLanguage);
-        }
-      }
-    };
-
-    // Load language immediately
-    loadLanguage();
-
-    // Listen for storage changes
     window.addEventListener('storage', handleStorageChange);
-    
-    // Listen for focus events (when user returns to tab)
-    window.addEventListener('focus', loadLanguage);
-    
-    // Listen for custom language change events
-    const handleLanguageChange = (e: CustomEvent) => {
-      const newLanguage = e.detail as Language;
-      if (cityConfig.availableLanguages.includes(newLanguage as AvailableLanguage)) {
-        setLanguageState(newLanguage);
-      }
-    };
-    window.addEventListener('languageChanged', handleLanguageChange as EventListener);
-    
-    // Listen for page visibility changes (when user navigates back to the page)
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        loadLanguage();
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [isClient]);
 
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('focus', loadLanguage);
-      window.removeEventListener('languageChanged', handleLanguageChange as EventListener);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, []);
-
-  const setLanguage = (lang: Language) => {
-    setLanguageState(lang);
-    localStorage.setItem('language', lang);
-    
-    // Dispatch a custom event to notify other components
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('languageChanged', { detail: lang }));
+  const setLanguage = (newLanguage: Language) => {
+    if (cityConfig.availableLanguages.includes(newLanguage as AvailableLanguage)) {
+      setLanguageState(newLanguage);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('language', newLanguage);
+      }
     }
   };
 
   const setLanguageByCity = (city: string, force: boolean = false) => {
-    // Only override language if forced or if no language preference exists
-    if (force || !localStorage.getItem('language')) {
-      if (cityConfig.cityLanguageMapping[city as keyof typeof cityConfig.cityLanguageMapping]) {
-        const cityLanguage = cityConfig.cityLanguageMapping[city as keyof typeof cityConfig.cityLanguageMapping];
-        setLanguageState(cityLanguage);
-        localStorage.setItem('language', cityLanguage);
+    const cityLanguage = cityConfig.cityLanguageMapping[city as keyof typeof cityConfig.cityLanguageMapping];
+    if (cityLanguage) {
+      // Only set language if forced or no language preference exists
+      if (force || (typeof window !== 'undefined' && !localStorage.getItem('language'))) {
+        setLanguage(cityLanguage);
       }
     }
   };
 
   const reloadLanguage = () => {
-    if (typeof window !== 'undefined') {
-      const savedLanguage = localStorage.getItem('language') as Language;
-      if (savedLanguage && cityConfig.availableLanguages.includes(savedLanguage as AvailableLanguage)) {
-        setLanguageState(savedLanguage);
-      }
-    }
+    loadLanguage();
   };
 
   const t = (key: keyof typeof translations.hi): string => {
-    return translations[language][key] || translations.en[key] || key;
-  };
-
-  const value: LanguageContextType = {
-    language,
-    setLanguage,
-    setLanguageByCity,
-    reloadLanguage,
-    t,
+    return translations[language]?.[key] || translations[cityConfig.defaultLanguage][key] || key.toString();
   };
 
   return (
-    <LanguageContext.Provider value={value}>
+    <LanguageContext.Provider value={{
+      language,
+      setLanguage,
+      setLanguageByCity,
+      reloadLanguage,
+      t
+    }}>
       {children}
     </LanguageContext.Provider>
   );

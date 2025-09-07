@@ -11,7 +11,7 @@ const CreateAccount = () => {
 return (
     <div className="min-h-screen bg-white">
       <Header/>
-      <CreateAccountPage onRegister={handleRegister} />
+      <CreateAccountPage />
     </div>
   );
 
