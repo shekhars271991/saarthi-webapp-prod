@@ -86,7 +86,7 @@ const Header = () => {
     // Show toast notification for language change
     const cityLanguage = cityConfig.cityLanguageMapping[newCity as keyof typeof cityConfig.cityLanguageMapping];
     if (cityLanguage && previousLanguage !== cityLanguage) {
-      toast.success(`Language switched to ${cityConfig.languageDisplayNames[cityLanguage]} for ${cityConfig.cityDisplayNames[newCity]}`);
+      toast.success(`Language switched to ${cityConfig.languageDisplayNames[cityLanguage]} for ${cityConfig.cityDisplayNames[newCity as keyof typeof cityConfig.cityDisplayNames]}`);
     }
   };
 
@@ -186,7 +186,7 @@ const Header = () => {
                     >
                       {cityConfig.availableCities.map(city => (
                         <option key={city} value={city}>
-                          {cityConfig.cityDisplayNames[city]}
+                          {cityConfig.cityDisplayNames[city as keyof typeof cityConfig.cityDisplayNames]}
                         </option>
                       ))}
                     </select>
@@ -282,7 +282,7 @@ const Header = () => {
             >
               {cityConfig.availableCities.map(city => (
                 <option key={city} value={city}>
-                  {cityConfig.cityDisplayNames[city]}
+                  {cityConfig.cityDisplayNames[city as keyof typeof cityConfig.cityDisplayNames]}
                 </option>
               ))}
             </select>
