@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 import { listRides } from '../services/apiService';
+import ScheduleSelector from './ScheduleSelector';
 import { useLanguage } from '../contexts/LanguageContext';
 import { airportConfig } from '../config/airports';
 
@@ -830,19 +831,11 @@ const AirportTransfer: React.FC = () => {
             </div>
 
             <div className="mb-4 md:mb-6">
-                              <label className="block text-sm md:text-base font-medium text-gray-700 mb-2">{t('schedule')}</label>
-              <div className="relative">
-               <input
-  type="datetime-local"
-  value={schedule}
-  min={new Date().toISOString().slice(0, 16)}
-  max={new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16)}
-  step="300"
-  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSchedule(e.target.value)}
-  className="w-full border border-gray-300 rounded-md py-2 md:py-3 px-4 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-teal-600 appearance-none"
-/>
-          
-              </div>
+              <ScheduleSelector
+                value={schedule}
+                onChange={setSchedule}
+                label={t('schedule')}
+              />
             </div>
 
   {/* Removed distance display as per new requirement */}
