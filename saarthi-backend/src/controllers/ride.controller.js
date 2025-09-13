@@ -2,6 +2,8 @@ const Ride = require("../models/ride.model");
 const User = require("../models/user.model");
 const mongoose = require("mongoose");
 const { calcFareWithDistance } = require("../utils/fare");
+const airportConfig = require("../config/airports");
+const { validateRideServiceArea } = require("../utils/locationValidator");
 
 
 exports.checkFareAndCreateRide = async (req, res, next) => {
@@ -77,6 +79,29 @@ exports.checkFareAndCreateRide = async (req, res, next) => {
         return res.status(400).json({ message: "Invalid ride_type" });
     }
 
+    // Validate service area for pickup and drop locations
+    console.log('Validating service area for ride...');
+    const serviceAreaValidation = await validateRideServiceArea({
+      pickup_location,
+      drop_location,
+      pickup_lat,
+      pickup_lng,
+      drop_lat,
+      drop_lng
+    });
+
+    if (!serviceAreaValidation.isRideServiceable) {
+      return res.status(400).json({
+        message: "Service not available for selected locations",
+        error: "OUTSIDE_SERVICE_AREA",
+        details: serviceAreaValidation.message,
+        nonServiceableLocations: serviceAreaValidation.nonServiceableLocations,
+        serviceAreaDescription: serviceAreaValidation.serviceAreaDescription
+      });
+    }
+
+    console.log('Service area validation passed');
+
     // Prepare location data for distance calculation
     let origin, destination;
 
@@ -93,13 +118,23 @@ exports.checkFareAndCreateRide = async (req, res, next) => {
         break;
         
       case "airport-transfer":
+        // Get airport coordinates from the selected terminal
+        const selectedAirport = airport_terminal;
+        const airportCoords = airportConfig.getAirportCoordinates(selectedAirport);
+        
+        if (!airportCoords) {
+          return res.status(400).json({ 
+            message: `Invalid airport terminal: ${selectedAirport}. Available airports: ${airportConfig.availableAirports.join(', ')}` 
+          });
+        }
+
         if (airport_direction === "to") {
           // Going to airport
           origin = pickup_lat && pickup_lng ? { lat: pickup_lat, lng: pickup_lng } : pickup_location;
-          destination = "Kempegowda International Airport, Bengaluru"; // Default airport
+          destination = airportCoords; // Use selected airport coordinates
         } else {
           // Coming from airport
-          origin = "Kempegowda International Airport, Bengaluru"; // Default airport
+          origin = airportCoords; // Use selected airport coordinates
           destination = drop_lat && drop_lng ? { lat: drop_lat, lng: drop_lng } : drop_location;
         }
         break;

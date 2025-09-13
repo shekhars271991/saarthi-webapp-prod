@@ -1,4 +1,5 @@
 const axios = require('axios');
+const airportConfig = require('../config/airports');
 
 /**
  * Calculate distance between two locations using Google Maps Distance Matrix API
@@ -18,6 +19,11 @@ const calculateDistance = async (origin, destination) => {
     // Format origin and destination for API
     const formatLocation = (location) => {
       if (typeof location === 'string') {
+        // Check if it's an airport name and get coordinates
+        const airportCoords = airportConfig.getAirportCoordinates(location);
+        if (airportCoords) {
+          return `${airportCoords.lat},${airportCoords.lng}`;
+        }
         return encodeURIComponent(location);
       }
       if (location.lat && location.lng) {
@@ -61,23 +67,43 @@ const calculateDistance = async (origin, destination) => {
 
 /**
  * Fallback distance calculation using Haversine formula
- * @param {Object} origin - Origin coordinates {lat, lng}
- * @param {Object} destination - Destination coordinates {lat, lng}
+ * @param {Object} origin - Origin coordinates {lat, lng} or airport name
+ * @param {Object} destination - Destination coordinates {lat, lng} or airport name
  * @returns {number} Distance in kilometers
  */
 const calculateFallbackDistance = (origin, destination) => {
+  // Convert airport names to coordinates if needed
+  let originCoords = origin;
+  let destinationCoords = destination;
+  
+  if (typeof origin === 'string') {
+    originCoords = airportConfig.getAirportCoordinates(origin);
+    if (!originCoords) {
+      console.warn(`Airport coordinates not found for: ${origin}, using default distance: 10 km`);
+      return 10;
+    }
+  }
+  
+  if (typeof destination === 'string') {
+    destinationCoords = airportConfig.getAirportCoordinates(destination);
+    if (!destinationCoords) {
+      console.warn(`Airport coordinates not found for: ${destination}, using default distance: 10 km`);
+      return 10;
+    }
+  }
+
   // If coordinates are not available, return a default distance
-  if (!origin.lat || !origin.lng || !destination.lat || !destination.lng) {
+  if (!originCoords.lat || !originCoords.lng || !destinationCoords.lat || !destinationCoords.lng) {
     console.warn('Coordinates not available for fallback calculation, using default distance: 10 km');
     return 10; // Default 10 km
   }
 
   const R = 6371; // Earth's radius in kilometers
-  const dLat = toRadians(destination.lat - origin.lat);
-  const dLng = toRadians(destination.lng - origin.lng);
+  const dLat = toRadians(destinationCoords.lat - originCoords.lat);
+  const dLng = toRadians(destinationCoords.lng - originCoords.lng);
   
   const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRadians(origin.lat)) * Math.cos(toRadians(destination.lat)) *
+    Math.cos(toRadians(originCoords.lat)) * Math.cos(toRadians(destinationCoords.lat)) *
     Math.sin(dLng / 2) * Math.sin(dLng / 2);
   
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));

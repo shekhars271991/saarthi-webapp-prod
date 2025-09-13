@@ -9,6 +9,7 @@ import { listRides } from '../services/apiService';
 import ScheduleSelector from './ScheduleSelector';
 import { useLanguage } from '../contexts/LanguageContext';
 import { airportConfig } from '../config/airports';
+import { serviceAreaConfig } from '../config/serviceArea';
 
 // New fare check API endpoint from Postman collection
 const checkFareApi = async (data: any) => {
@@ -50,6 +51,7 @@ const AirportTransfer: React.FC = () => {
   const [fromSuggestions, setFromSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([]);
   const [toSuggestions, setToSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([]);
   const [isGettingLocation, setIsGettingLocation] = useState<boolean>(false);
+  const [locationWarnings, setLocationWarnings] = useState<{pickup?: string, drop?: string}>({});
 
   const [bookingStatus, setBookingStatus] = useState<'confirmed' | 'completed' | null>(null);
 
@@ -254,10 +256,12 @@ const AirportTransfer: React.FC = () => {
             setLocationFrom(place.formatted_address || prediction.description);
             setFromCoords(coords);
             setShowFromDropdown(false);
+            validateLocationServiceArea(place.formatted_address || prediction.description, 'pickup');
           } else {
             setLocationTo(place.formatted_address || prediction.description);
             setToCoords(coords);
             setShowToDropdown(false);
+            validateLocationServiceArea(place.formatted_address || prediction.description, 'drop');
           }
         }
       }
@@ -270,6 +274,25 @@ const AirportTransfer: React.FC = () => {
     setShowMapModal(true);
     setShowFromDropdown(false);
     setShowToDropdown(false);
+  };
+
+  // Validate location for service area
+  const validateLocationServiceArea = (location: string, field: 'pickup' | 'drop') => {
+    if (!location) {
+      setLocationWarnings(prev => ({ ...prev, [field]: undefined }));
+      return;
+    }
+
+    const validation = serviceAreaConfig.basicLocationValidation(location);
+    
+    if (!validation.isLikelyServiceable) {
+      setLocationWarnings(prev => ({ 
+        ...prev, 
+        [field]: `⚠️ ${validation.reason}. ${serviceAreaConfig.getServiceAreaDescription()}` 
+      }));
+    } else {
+      setLocationWarnings(prev => ({ ...prev, [field]: undefined }));
+    }
   };
 
   // Get current location
@@ -670,7 +693,10 @@ const AirportTransfer: React.FC = () => {
                         type="text"
                         placeholder={t('pickupLocation')}
                         value={locationFrom}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLocationFrom(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                          setLocationFrom(e.target.value);
+                          validateLocationServiceArea(e.target.value, 'pickup');
+                        }}
                         className="w-full border border-gray-300 rounded-md pl-10 pr-12 py-2 md:py-3 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-teal-600"
                       />
                     ) : (
@@ -727,6 +753,13 @@ const AirportTransfer: React.FC = () => {
                       </>
                     )}
                   </div>
+                  
+                  {/* Service Area Warning for Pickup Location */}
+                  {locationWarnings.pickup && (
+                    <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                      <p className="text-sm text-yellow-800">{locationWarnings.pickup}</p>
+                    </div>
+                  )}
 
                   <div className="relative">
                     <MapPin className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
@@ -769,7 +802,10 @@ const AirportTransfer: React.FC = () => {
                         type="text"
                         placeholder="Drop Location"
                         value={locationTo}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLocationTo(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                          setLocationTo(e.target.value);
+                          validateLocationServiceArea(e.target.value, 'drop');
+                        }}
                         className="w-full border border-gray-300 rounded-md pl-10 pr-12 py-2 md:py-3 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-teal-600"
                       />
                     ) : (
@@ -826,6 +862,13 @@ const AirportTransfer: React.FC = () => {
                       </>
                     )}
                   </div>
+                  
+                  {/* Service Area Warning for Drop Location */}
+                  {locationWarnings.drop && (
+                    <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                      <p className="text-sm text-yellow-800">{locationWarnings.drop}</p>
+                    </div>
+                  )}
                 </>
               )}
             </div>
