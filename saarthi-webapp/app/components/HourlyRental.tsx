@@ -1,8 +1,9 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Calendar, MapPin, Info, Plane, Clock, StepBack, SendToBackIcon, ArrowLeft } from 'lucide-react';
+import { Calendar, MapPin, Info, Plane, Clock, StepBack, SendToBackIcon, ArrowLeft, Navigation } from 'lucide-react';
 import { calculateFareHourly, confirmBooking } from '../services/apiService';
 import { useLanguage } from '../contexts/LanguageContext';
+import { toast } from 'react-hot-toast';
 
 // Adjusted fare API call to match new API signature
 const useHourlyRentalFare = () => {
@@ -84,6 +85,7 @@ const HourlyRental: React.FC = () => {
   const [fromSuggestions, setFromSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([]);
   const [toSuggestions, setToSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([]);
   const [distance, setDistance] = useState<string>('');
+  const [isGettingLocation, setIsGettingLocation] = useState<boolean>(false);
 
   // Carousel state for quotes (used in step 1)
   const [currentQuoteIndex, setCurrentQuoteIndex] = useState<number>(0);
@@ -293,6 +295,91 @@ const HourlyRental: React.FC = () => {
     setShowMapModal(true);
     setShowFromDropdown(false);
     setShowToDropdown(false);
+  };
+
+  // Get current location
+  const getCurrentLocation = (type: 'from' | 'to') => {
+    if (!navigator.geolocation) {
+      toast.error('Geolocation is not supported by this browser');
+      return;
+    }
+
+    setIsGettingLocation(true);
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        
+        // Use Google Maps Geocoding API to get address from coordinates
+        if (window.google && window.google.maps) {
+          const geocoder = new google.maps.Geocoder();
+          const latlng = { lat: latitude, lng: longitude };
+          
+          geocoder.geocode({ location: latlng }, (results, status) => {
+            setIsGettingLocation(false);
+            
+            if (status === 'OK' && results && results[0]) {
+              const address = results[0].formatted_address;
+              const coords = { lat: latitude, lng: longitude };
+              
+              if (type === 'from') {
+                setLocationFrom(address);
+                setFromCoords(coords);
+                setShowFromDropdown(false);
+              } else {
+                setLocationTo(address);
+                setToCoords(coords);
+                setShowToDropdown(false);
+              }
+              
+              toast.success('Current location detected successfully');
+            } else {
+              toast.error('Unable to get address for current location');
+            }
+          });
+        } else {
+          // Fallback: just use coordinates
+          const coords = { lat: latitude, lng: longitude };
+          const address = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+          
+          if (type === 'from') {
+            setLocationFrom(address);
+            setFromCoords(coords);
+            setShowFromDropdown(false);
+          } else {
+            setLocationTo(address);
+            setToCoords(coords);
+            setShowToDropdown(false);
+          }
+          
+          setIsGettingLocation(false);
+          toast.success('Current location detected');
+        }
+      },
+      (error) => {
+        setIsGettingLocation(false);
+        let errorMessage = 'Unable to get current location';
+        
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage = 'Location access denied. Please enable location permissions.';
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage = 'Location information unavailable.';
+            break;
+          case error.TIMEOUT:
+            errorMessage = 'Location request timed out.';
+            break;
+        }
+        
+        toast.error(errorMessage);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 300000 // 5 minutes
+      }
+    );
   };
 
   // Initialize modal map
@@ -530,7 +617,7 @@ const HourlyRental: React.FC = () => {
                                           placeholder={t('location')}
                       value={locationFrom}
                       onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLocationFrom(e.target.value)}
-                      className="w-full border border-gray-300 rounded-md pl-10 py-2 md:py-3 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-teal-600"
+                      className="w-full border border-gray-300 rounded-md pl-10 pr-12 py-2 md:py-3 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-teal-600"
                   />
                 ) : (
                   <>
@@ -542,8 +629,19 @@ const HourlyRental: React.FC = () => {
                       onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFromInputChange(e.target.value)}
                       onFocus={() => setShowFromDropdown(true)}
                       onBlur={() => setTimeout(() => setShowFromDropdown(false), 200)}
-                      className="w-full border border-gray-300 rounded-md pl-10 py-2 md:py-3 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-teal-600"
+                      className="w-full border border-gray-300 rounded-md pl-10 pr-12 py-2 md:py-3 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-teal-600"
                     />
+                    <button
+                      type="button"
+                      onClick={() => getCurrentLocation('from')}
+                      disabled={isGettingLocation}
+                      className="absolute right-3 top-3 text-gray-400 hover:text-teal-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Use current location"
+                    >
+                      <Navigation 
+                        className={`w-5 h-5 ${isGettingLocation ? 'animate-spin' : ''}`} 
+                      />
+                    </button>
                     {showFromDropdown && (
                       <div className="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
                         <div

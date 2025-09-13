@@ -16,6 +16,34 @@ fi
 echo "📁 Creating logs directory..."
 mkdir -p logs
 
+# Using MongoDB Atlas - no local MongoDB installation needed
+echo "🗄️  Using MongoDB Atlas cloud database..."
+echo "✅ MongoDB Atlas configured in environment variables"
+
+# Check and install Node.js if needed
+echo "🟢 Checking Node.js installation..."
+if ! command -v node &> /dev/null; then
+    echo "📦 Installing Node.js 18..."
+    
+    # Install Node.js 18 using NodeSource repository
+    curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
+    sudo apt-get install -y nodejs
+    
+    echo "✅ Node.js installed"
+else
+    echo "✅ Node.js is already installed ($(node --version))"
+fi
+
+# Check and install PM2 if needed
+echo "⚙️  Checking PM2 installation..."
+if ! command -v pm2 &> /dev/null; then
+    echo "📦 Installing PM2..."
+    sudo npm install -g pm2
+    echo "✅ PM2 installed"
+else
+    echo "✅ PM2 is already installed"
+fi
+
 # Setup environment files
 echo "🔧 Setting up environment files..."
 
@@ -39,6 +67,9 @@ fi
 echo "🔍 Validating backend environment..."
 if ! grep -q "MONGODB_URI=" saarthi-backend/.env; then
     echo "⚠️  Warning: MONGODB_URI not found in backend .env file"
+    echo "⚠️  Make sure to set MongoDB Atlas connection string in .env file"
+else
+    echo "✅ MongoDB Atlas connection string found in .env file"
 fi
 
 # Install backend dependencies
@@ -47,13 +78,18 @@ cd saarthi-backend
 npm install --production
 cd ..
 
-# Install frontend dependencies and build
-echo "📦 Installing frontend dependencies..."
-cd saarthi-webapp
-npm install
-echo "🏗️  Building frontend for production..."
-npm run build
-cd ..
+# Check if frontend is already built (from local build)
+echo "🔍 Checking frontend build..."
+if [ -d "saarthi-webapp/.next/standalone" ]; then
+    echo "✅ Frontend already built locally, skipping build step"
+else
+    echo "📦 Installing frontend dependencies..."
+    cd saarthi-webapp
+    npm install
+    echo "🏗️  Building frontend for production..."
+    npm run build
+    cd ..
+fi
 
 # Stop existing PM2 processes
 echo "🛑 Stopping existing processes..."
@@ -90,4 +126,5 @@ echo "⚠️  Don't forget to:"
 echo "   1. Update your .env files with actual values"
 echo "   2. Configure your EC2 security groups (ports 3000, 4000)"
 echo "   3. Set up a domain name and SSL certificate"
+echo "   4. Ensure MongoDB Atlas cluster is accessible from your EC2 instance"
 echo ""
