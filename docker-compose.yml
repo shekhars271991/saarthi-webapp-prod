@@ -1,5 +1,3 @@
-version: '3.8'
-
 # MongoDB Atlas is now used instead of local MongoDB
 # No services needed for database as we're using cloud MongoDB Atlas
 

@@ -15,16 +15,9 @@ echo "📦 Installing Node.js 18.x..."
 curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
 sudo apt-get install -y nodejs
 
-# Install MongoDB
-echo "📦 Installing MongoDB..."
-wget -qO - https://www.mongodb.org/static/pgp/server-6.0.asc | sudo apt-key add -
-echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/6.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list
-sudo apt-get update
-sudo apt-get install -y mongodb-org
-
-# Start and enable MongoDB
-sudo systemctl start mongod
-sudo systemctl enable mongod
+# Using MongoDB Atlas - no local MongoDB installation needed
+echo "🗄️  MongoDB Atlas will be used for database..."
+echo "✅ No local MongoDB installation required"
 
 # Install PM2 for process management
 echo "📦 Installing PM2..."

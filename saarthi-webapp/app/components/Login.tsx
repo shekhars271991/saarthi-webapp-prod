@@ -72,7 +72,10 @@ const Login: React.FC<LoginProps> = ({ redirectTo = '/' }) => {
             color: '#FFFFFF',
           },
         });
-        router.push(redirectTo=="/"?"/":"/"+redirectTo); // Use redirectTo prop here
+        // Handle redirect properly
+        const targetUrl = redirectTo === '/' ? '/' : redirectTo.startsWith('/') ? redirectTo : `/${redirectTo}`;
+        console.log('Login successful, redirecting to:', targetUrl, 'from redirectTo:', redirectTo);
+        router.push(targetUrl);
       } else {
         toast.error('Login failed: Invalid user data', {
           style: {

@@ -1,6 +1,7 @@
 const Ride = require("../models/ride.model");
 const User = require("../models/user.model");
 const mongoose = require("mongoose");
+const { calcFareWithDistance } = require("../utils/fare");
 
 
 exports.checkFareAndCreateRide = async (req, res, next) => {
@@ -76,17 +77,43 @@ exports.checkFareAndCreateRide = async (req, res, next) => {
         return res.status(400).json({ message: "Invalid ride_type" });
     }
 
-    // Fare calculation
-    const baseRates = { hourly: 150, outstation: 12, "airport-transfer": 20 };
-    let fare;
+    // Prepare location data for distance calculation
+    let origin, destination;
 
-    if (ride_type === "hourly") {
-      fare = hours * baseRates.hourly;
-    } else if (ride_type === "outstation") {
-      fare = 300 * baseRates.outstation;
-    } else {
-      fare = 50 * baseRates["airport-transfer"];
+    switch (ride_type) {
+      case "hourly":
+        // For hourly, we need pickup location and assume a default destination or use pickup as both
+        origin = pickup_lat && pickup_lng ? { lat: pickup_lat, lng: pickup_lng } : pickup_location;
+        destination = origin; // For hourly, distance is estimated based on typical usage
+        break;
+        
+      case "outstation":
+        origin = pickup_lat && pickup_lng ? { lat: pickup_lat, lng: pickup_lng } : pickup_location;
+        destination = drop_lat && drop_lng ? { lat: drop_lat, lng: drop_lng } : drop_location;
+        break;
+        
+      case "airport-transfer":
+        if (airport_direction === "to") {
+          // Going to airport
+          origin = pickup_lat && pickup_lng ? { lat: pickup_lat, lng: pickup_lng } : pickup_location;
+          destination = "Kempegowda International Airport, Bengaluru"; // Default airport
+        } else {
+          // Coming from airport
+          origin = "Kempegowda International Airport, Bengaluru"; // Default airport
+          destination = drop_lat && drop_lng ? { lat: drop_lat, lng: drop_lng } : drop_location;
+        }
+        break;
     }
+
+    // Calculate fare with distance
+    const fareData = await calcFareWithDistance({
+      type: ride_type,
+      origin,
+      destination,
+      hours: hours || 0
+    });
+
+    const { fare, distance, breakdown } = fareData;
 
     // Ride creation
    const rideData = {
@@ -103,6 +130,7 @@ exports.checkFareAndCreateRide = async (req, res, next) => {
   dropLng: drop_lng ?? null,
 
   fare,
+  distance: distance,
   status: "pending"
 };
 
@@ -117,7 +145,12 @@ const ride = await Ride.create(rideData);
     res.json({
       message: "Ride created with pending status",
       ride_id: ride._id,
-      fare_details: { fare, ride_type }
+      fare_details: { 
+        fare, 
+        ride_type,
+        distance,
+        breakdown 
+      }
     });
 
   } catch (err) {

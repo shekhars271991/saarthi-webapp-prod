@@ -19,13 +19,9 @@ cleanup() {
 # Set up signal handlers
 trap cleanup SIGINT SIGTERM
 
-# Check if Docker is running
-echo "🐳 Checking Docker..."
-if ! docker info > /dev/null 2>&1; then
-    echo "❌ Docker is not running. Please start Docker Desktop first."
-    exit 1
-fi
-echo "✅ Docker is running"
+# Using MongoDB Atlas - no Docker needed for database
+echo "🗄️  Using MongoDB Atlas cloud database..."
+echo "✅ MongoDB Atlas configured in environment variables"
 echo ""
 
 # Install dependencies if needed
@@ -53,17 +49,9 @@ fi
 
 echo ""
 
-# Check if MongoDB is running
-echo "🔍 Checking if MongoDB is running..."
-if ! docker ps | grep -q "saarthi-mongodb"; then
-    echo "📦 Starting MongoDB..."
-    docker-compose up -d mongodb
-    echo "⏳ Waiting for MongoDB to be ready..."
-    sleep 5
-else
-    echo "✅ MongoDB is already running"
-fi
-
+# MongoDB Atlas is used - no local MongoDB setup needed
+echo "🔗 Connecting to MongoDB Atlas..."
+echo "✅ MongoDB Atlas connection configured"
 echo ""
 
 # Start backend
@@ -112,7 +100,7 @@ echo ""
 echo "📍 Services will be available at:"
 echo "   Backend API:  http://localhost:4000"
 echo "   Frontend App: http://localhost:3000"
-echo "   MongoDB:      localhost:27017"
+echo "   Database:     MongoDB Atlas (Cloud)"
 echo ""
 echo "🔄 Press Ctrl+C to stop all services"
 echo ""

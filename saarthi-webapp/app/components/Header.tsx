@@ -98,7 +98,13 @@ const Header = () => {
     localStorage.removeItem('user');
     setUser(null);
     setDropdownOpen(false);
-    router.replace('/login');
+    toast.success('Logged out successfully', {
+      style: {
+        background: '#10B981',
+        color: '#FFFFFF',
+      },
+    });
+    router.replace('/'); // Redirect to homepage instead of login
   };
 
   return (

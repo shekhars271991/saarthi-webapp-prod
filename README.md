@@ -15,7 +15,7 @@ This is a monorepo containing two main projects:
 
 - Node.js (v16 or higher)
 - npm or yarn
-- MongoDB (for backend)
+- MongoDB Atlas account (cloud database)
 
 ### Backend Setup
 
@@ -42,7 +42,7 @@ The frontend will run on `http://localhost:3000`
 ### Backend (`saarthi-backend/`)
 
 - **Framework**: Node.js with Express
-- **Database**: MongoDB with Mongoose
+- **Database**: MongoDB Atlas (Cloud) with Mongoose
 - **Features**:
   - User authentication and authorization
   - Ride management
@@ -103,7 +103,7 @@ npm run dev
 Create `.env` file in `saarthi-backend/`:
 ```env
 PORT=5000
-MONGODB_URI=your_mongodb_connection_string
+MONGODB_URI=your_mongodb_atlas_connection_string
 JWT_SECRET=your_jwt_secret
 ```
 
@@ -153,7 +153,7 @@ Both projects have their own configuration files:
 
 ### Backend Deployment
 - Can be deployed to platforms like Heroku, Railway, or AWS
-- Ensure MongoDB connection string is properly configured
+- Ensure MongoDB Atlas connection string is properly configured
 - Set environment variables for production
 
 ### Frontend Deployment

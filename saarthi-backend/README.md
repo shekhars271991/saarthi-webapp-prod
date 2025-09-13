@@ -50,10 +50,8 @@ OTP_EXPIRES_MIN=5
 ## 🧪 Run Locally
 
 ```bash
-# Start MongoDB (if not running already)
-docker run -d -p 27017:27017 --name saarthi-mongo mongo
-
-# Start the dev server
+# MongoDB Atlas is used - no local MongoDB setup needed
+# Just start the dev server
 npm run dev
 ```
 

@@ -826,14 +826,21 @@ const HourlyRental: React.FC = () => {
           </div>
         ) : (
           <div className="flex-1 flex flex-col">
-         
-               <button
-              style={{width:"fit-content",alignItems:"center",display:"flex"}}
-                    onClick={()=>setBookingStep("form")}
-                    className=" px-6 py-2 rounded-full   font-medium mb-2"
-                  >
-                   <ArrowLeft  className='mr-1 '/> {"    "} Back
-                  </button>
+            <div className="flex items-center justify-between mb-4">
+              <button
+                style={{width:"fit-content",alignItems:"center",display:"flex"}}
+                onClick={()=>setBookingStep("form")}
+                className="px-6 py-2 rounded-full font-medium"
+              >
+                <ArrowLeft className='mr-1' /> Back
+              </button>
+              <button
+                onClick={() => window.location.href = '/'}
+                className="px-6 py-2 rounded-full border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium"
+              >
+                Cancel & Go Home
+              </button>
+            </div>
             <h2 className=" text-2xl font-semibold mb-6">Complete Booking</h2>
             
                

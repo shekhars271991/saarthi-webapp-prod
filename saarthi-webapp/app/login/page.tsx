@@ -10,12 +10,16 @@ const LoginContent = () => {
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get('redirect') || '/';
   
+  console.log('Login page loaded with redirect parameter:', redirectTo);
+  
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
     const userStr = localStorage.getItem('user');
     if (userStr) {
-      window.location.href = redirectTo == "/" ? "/" : "/" + redirectTo;
+      // Handle redirect properly for already logged in users
+      const targetUrl = redirectTo === '/' ? '/' : redirectTo.startsWith('/') ? redirectTo : `/${redirectTo}`;
+      window.location.href = targetUrl;
       return;
     }
   }, [redirectTo]);
@@ -23,7 +27,7 @@ const LoginContent = () => {
   return (
     <div className="min-h-screen bg-white">
       <Header/>
-      <Login />
+      <Login redirectTo={redirectTo} />
     </div>
   );
 };
