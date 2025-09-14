@@ -23,7 +23,7 @@ export default function Homepage() {
           {/* Responsive background adjustments */}
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black/40"></div>
           {/* Dark overlay for better text readability */}
-          <div className="absolute inset-0 bg-black bg-opacity-30"></div>
+          <div className="hidden absolute inset-0 bg-black bg-opacity-30"></div>
         
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-start pt-32 sm:pt-20">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
