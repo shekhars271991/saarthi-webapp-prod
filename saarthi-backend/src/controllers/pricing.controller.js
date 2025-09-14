@@ -1,6 +1,7 @@
 const { calcFareWithDistance } = require('../utils/fare');
 const { validateRideServiceArea } = require('../utils/locationValidator');
 const airportConfig = require('../config/airports');
+const carInventory = require('../config/carInventory');
 
 /**
  * Calculate pricing for a ride without creating the ride
@@ -121,14 +122,23 @@ exports.calculatePricing = async (req, res) => {
       hours: hours || 0
     });
 
-    // Return pricing information
+    // Get available car options with calculated fares
+    const carOptions = carInventory.getCarOptions(fareResult.fare);
+
+    // Return pricing information with car options
     res.json({
       success: true,
       data: {
         ride_type,
-        fare: fareResult.fare,
         distance: fareResult.distance,
-        breakdown: fareResult.breakdown,
+        car_options: carOptions.map(car => ({
+          ...car,
+          breakdown: {
+            ...fareResult.breakdown,
+            total: `₹${car.fare}`,
+            formula: fareResult.breakdown.formula.replace(/₹\d+/, `₹${car.fare}`)
+          }
+        })),
         service_area_validation: serviceAreaValidation,
         pricing_details: {
           calculated_at: new Date().toISOString(),

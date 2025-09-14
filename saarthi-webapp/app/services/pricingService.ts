@@ -16,20 +16,38 @@ export interface PricingRequest {
   hours?: number; // Required for hourly
 }
 
+export interface CarOption {
+  id: string;
+  name: string;
+  image: string;
+  type: string;
+  capacity: number;
+  luggage: number;
+  fare: number;
+  fareMultiplier: number;
+  available: boolean;
+  features?: string[];
+  breakdown?: {
+    base_fare?: number;
+    distance_fare?: number;
+    hourly_fare?: number;
+    total_fare?: number;
+    distance_km?: number;
+    hours?: number;
+    distance?: string;
+    total?: string;
+    baseFare?: string;
+    distanceFare?: string;
+    formula?: string;
+  };
+}
+
 export interface PricingResponse {
   success: boolean;
   data?: {
     ride_type: string;
-    fare: number;
     distance: number;
-    breakdown: {
-      base_fare?: number;
-      distance_fare?: number;
-      hourly_fare?: number;
-      total_fare: number;
-      distance_km: number;
-      hours?: number;
-    };
+    car_options: CarOption[];
     service_area_validation: {
       isRideServiceable: boolean;
       pickupServiceable?: boolean;

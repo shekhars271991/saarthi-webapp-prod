@@ -9,6 +9,7 @@ import { toast } from 'react-hot-toast';
 import { listRides } from '../services/apiService';
 import ScheduleSelector from './ScheduleSelector';
 import AirportSelector from './AirportSelector';
+import CarSelector from './CarSelector';
 import { useLanguage } from '../contexts/LanguageContext';
 import { airportConfig } from '../config/airports';
 import { serviceAreaConfig } from '../config/serviceArea';
@@ -82,9 +83,8 @@ const useAirportTransferPricing = () => {
     pricingLoading, 
     pricingError, 
     calculatePrice,
-    fare: pricingData?.fare || null,
     distance: pricingData?.distance || null,
-    breakdown: pricingData?.breakdown || null
+    carOptions: pricingData?.car_options || []
   };
 };
 
@@ -120,7 +120,7 @@ const AirportTransfer: React.FC = () => {
   const [locationWarnings, setLocationWarnings] = useState<{pickup?: string, drop?: string}>({});
 
   const [bookingStatus, setBookingStatus] = useState<'confirmed' | 'completed' | null>(null);
-
+  const [selectedCarId, setSelectedCarId] = useState<string | null>(null);
 
   const fromInputRef = useRef<HTMLInputElement>(null);
   const toInputRef = useRef<HTMLInputElement>(null);
@@ -129,6 +129,16 @@ const AirportTransfer: React.FC = () => {
   const markerRef = useRef<google.maps.Marker | null>(null);
   const autocompleteServiceRef = useRef<google.maps.places.AutocompleteService | null>(null);
   const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null);
+
+  // Use pricing hook
+  const { pricingData, pricingLoading, pricingError, calculatePrice, distance: calculatedDistance, carOptions } = useAirportTransferPricing();
+
+  // Calculate selected car fare
+  const selectedCarFare = selectedCarId && carOptions.length > 0 
+    ? carOptions.find(car => car.id === selectedCarId)?.fare || carOptions[0]?.fare || 0
+    : carOptions[0]?.fare || 0;
+
+
 
   // Load Google Maps scripts
   useEffect(() => {
@@ -229,6 +239,13 @@ const AirportTransfer: React.FC = () => {
       }
     }
   }, []);
+
+  // Auto-select first car option when car options are loaded
+  useEffect(() => {
+    if (carOptions && carOptions.length > 0 && !selectedCarId) {
+      setSelectedCarId(carOptions[0].id);
+    }
+  }, [carOptions, selectedCarId]);
 
   // Initialize autocomplete with custom dropdown
   const initializeAutocomplete = () => {
@@ -492,6 +509,9 @@ const AirportTransfer: React.FC = () => {
   const [isTooltipVisible, setTooltipVisible] = useState(false);
   const [discount, setDiscount] = useState<number>(0);
 
+  // Calculate total amount
+  const totalAmount = selectedCarFare - discount;
+
   const handleApplyCoupon = () => {
     if (coupon.toLowerCase() === 'save200') {
       setDiscount(200);
@@ -547,6 +567,7 @@ const AirportTransfer: React.FC = () => {
         userId = parsedUser._id || '';
       }
       // Prepare data for new fare check API with airport_direction and airport_terminal
+      const finalSelectedCarId = selectedCarId || (carOptions.length > 0 ? carOptions[0].id : undefined);
       const data = {
         user_id: userId,
         ride_type: 'airport-transfer',
@@ -560,6 +581,7 @@ const AirportTransfer: React.FC = () => {
         pickup_datetime: schedule,
         airport_direction: tripType === 'drop' ? 'to' : 'from',
         airport_terminal: tripType === 'drop' ? locationTo : locationFrom,
+        selected_car_id: finalSelectedCarId
       };
       const fareData = await checkFareApi(data);
       if (fareData && fareData.fare_details) {
@@ -683,7 +705,6 @@ const AirportTransfer: React.FC = () => {
     return `${time} - ${formattedDate}`;
   };
   const baseFare = apiFare !== null ? apiFare : 0; // Prefer API fare, fallback 0
-  const totalAmount = baseFare - discount;
 
   return (
     <div className="min-h-screen bg-white flex flex-col md:flex-row">
@@ -915,7 +936,7 @@ const AirportTransfer: React.FC = () => {
     </div>
   )} */}
 
-            <div className="bg-[#E7F5F3] p-4 rounded-md mb-4 md:mb-6">
+            {/* <div className="bg-[#E7F5F3] p-4 rounded-md mb-4 md:mb-6">
            <div className="flex items-center mb-3 relative">
                       <span className="text-gray-700 font-medium text-sm md:text-base">{t('guestInfo')}</span>
       <div
@@ -968,7 +989,7 @@ const AirportTransfer: React.FC = () => {
                 </div>
               </div>
              
-            </div>
+            </div> */}
 
             <button
               onClick={handleCheckFare}
@@ -1062,6 +1083,18 @@ const AirportTransfer: React.FC = () => {
                     <li>Rentals are available within city limits.</li>
                   </ul>
                 </div>
+
+                {/* Car Selection */}
+                {carOptions && carOptions.length > 0 && (
+                  <div className="mt-6">
+                    <h3 className="text-lg font-medium mb-4">Select Your Car</h3>
+                    <CarSelector
+                      carOptions={carOptions}
+                      selectedCarId={selectedCarId || carOptions[0]?.id}
+                      onCarSelect={setSelectedCarId}
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Fare Summary */}
@@ -1071,15 +1104,9 @@ const AirportTransfer: React.FC = () => {
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Base fare</span>
                     <span className="font-medium text-gray-800">
-                      {apiFareLoading
+                      {pricingLoading
                         ? 'Loading...'
-                        : apiFare !== null
-                        ? Math.round(apiFare)
-                        : Math.round(baseFare)}
-                        {
-                          " "
-                        }
-                        {"INR"}
+                        : formatFare(selectedCarFare)}
                     </span>
                   </div>
                   {/* Removed distance display as per new requirement */}
@@ -1112,22 +1139,15 @@ const AirportTransfer: React.FC = () => {
                   <div className="flex justify-between pt-4 border-t border-gray-300 mt-4 text-base font-medium">
                     <span>Total Amount</span>
                     <span>
-                      {apiFareLoading
+                      {pricingLoading
                         ? 'Loading...'
-                        : apiFare !== null
-                        ? Math.round(totalAmount)
-                        : Math.round(totalAmount)}
-
-                        {
-                          " "
-                        }
-                        {"INR"}
+                        : formatFare(totalAmount)}
                     </span>
                   </div>
                 </div>
                 <div className="flex items-center justify-between mt-6 gap-3">
                   <button
-                    onClick={handleBookingConfirmed}
+                    onClick={handleCheckFare}
                     className="bg-[#016B5D] text-white px-6 py-2 rounded-full hover:bg-[#014D40] text-sm font-medium flex-1"
                   >
                     Confirm Booking

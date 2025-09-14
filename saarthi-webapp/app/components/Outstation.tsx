@@ -552,9 +552,9 @@ useEffect(() => {
       )}
 
       {/* Right Section */}
-      <div className={`${bookingStep === 'form' ? 'flex-1 md:w-1/2 p-6 md:p-12' : 'w-full  p-4 md:p-12 flex flex-col'}`}>
+      <div className={`${bookingStep === 'form' ? 'flex-1 md:w-1/2 p-6 md:p-12' : 'w-full  p-4 md:p-12 flex flex-col'} relative`}>
         {bookingStep === 'form' ? (
-          <div className="w-full max-w-md mx-auto">
+          <div className="w-full max-w-md mx-auto overflow-visible relative">
             {/* Ride Type Navigation */}
             <div className="mb-6">
               <RideTypeNavigation currentType="outstation" />
@@ -611,7 +611,7 @@ useEffect(() => {
                       />
                     </button>
                     {showFromDropdown && (
-                      <div className="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
+                      <div className="absolute md:absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-md shadow-lg z-[9999] max-h-60 overflow-y-auto">
                         <div
                           onClick={() => handleMapSelectionOption('from')}
                           className="p-3 hover:bg-gray-100 cursor-pointer border-b flex items-center"
@@ -666,7 +666,7 @@ useEffect(() => {
                   />
                 </button>
                 {showToDropdown && (
-                  <div className="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
+                  <div className="absolute md:absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-md shadow-lg z-[9999] max-h-60 overflow-y-auto">
                     <div
                       onClick={() => handleMapSelectionOption('to')}
                       className="p-3 hover:bg-gray-100 cursor-pointer border-b flex items-center"
@@ -713,7 +713,7 @@ useEffect(() => {
               </div>
             )}
 
-            <div className="bg-[#E7F5F3] p-4 rounded-md mb-4 md:mb-6">
+            {/* <div className="bg-[#E7F5F3] p-4 rounded-md mb-4 md:mb-6">
             <div className="flex items-center mb-3 relative">
                       <span className="text-gray-700 font-medium text-sm md:text-base">{t('guestInfo')}</span>
       <div
@@ -766,7 +766,7 @@ useEffect(() => {
                 </div>
               </div>
              
-            </div>
+            </div> */}
 
             <button
               onClick={handleCheckFare}

@@ -13,6 +13,13 @@ const rideSchema = new Schema(
     dropLng:       Number,
     fare:          { type: Number, required: false },
     distance:      { type: Number, required: false }, // Distance in kilometers
+    selectedCar:   {
+      carId:       { type: String, required: false },
+      carName:     { type: String, required: false },
+      carImage:    { type: String, required: false },
+      carType:     { type: String, required: false },
+      carFare:     { type: Number, required: false }
+    },
     airportTerminal: { type: String, required: false },
     airportDirection: { type: String, enum: ["to", "from"], required: false },
     pickupDatetime: { type: Date, required: true },

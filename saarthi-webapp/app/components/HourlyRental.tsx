@@ -8,6 +8,7 @@ import { toast } from 'react-hot-toast';
 import ScheduleSelector from './ScheduleSelector';
 import RideTypeNavigation from './RideTypeNavigation';
 import HoursSelector from './HoursSelector';
+import CarSelector from './CarSelector';
 
 // New pricing hook using backend pricing API
 const useHourlyRentalPricing = () => {
@@ -67,9 +68,8 @@ const useHourlyRentalPricing = () => {
     pricingLoading, 
     pricingError, 
     calculatePrice,
-    fare: pricingData?.fare || null,
     distance: pricingData?.distance || null,
-    breakdown: pricingData?.breakdown || null
+    carOptions: pricingData?.car_options || []
   };
 };
 
@@ -82,7 +82,7 @@ declare global {
 
 const HourlyRental: React.FC = () => {
   const { t } = useLanguage();
-  const { pricingData, pricingLoading, pricingError, calculatePrice, fare, distance: calculatedDistance, breakdown } = useHourlyRentalPricing();
+  const { pricingData, pricingLoading, pricingError, calculatePrice, distance: calculatedDistance, carOptions } = useHourlyRentalPricing();
   const mode = process.env.NEXT_PUBLIC_MODE || 'prod';
 
 
@@ -108,6 +108,7 @@ const HourlyRental: React.FC = () => {
   const [toSuggestions, setToSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([]);
   const [distance, setDistance] = useState<string>('');
   const [isGettingLocation, setIsGettingLocation] = useState<boolean>(false);
+  const [selectedCarId, setSelectedCarId] = useState<string | null>(null);
 
 
   const fromInputRef = useRef<HTMLInputElement>(null);
@@ -235,6 +236,13 @@ const HourlyRental: React.FC = () => {
       setDistance(dist.toFixed(1));
     }
   }, [fromCoords, toCoords]);
+
+  // Auto-select first car option when car options are loaded
+  useEffect(() => {
+    if (carOptions && carOptions.length > 0 && !selectedCarId) {
+      setSelectedCarId(carOptions[0].id);
+    }
+  }, [carOptions, selectedCarId]);
 
   // Auto-rotate quotes every 5 seconds (for step 1)
 
@@ -519,13 +527,15 @@ const HourlyRental: React.FC = () => {
         }
         
         // Still need to create the ride using the old API for now
+        const finalSelectedCarId = selectedCarId || (carOptions.length > 0 ? carOptions[0].id : undefined);
         const fareData = await calculateFareHourly(
           userId,
           Number(hours),
           locationFrom,
           fromCoords?.lat || 0,
           fromCoords?.lng || 0,
-          schedule
+          schedule,
+          finalSelectedCarId
         );
         
         if (fareData?.ride_id) {
@@ -572,9 +582,11 @@ const HourlyRental: React.FC = () => {
     return `${time} - ${formattedDate}`;
   };
 
-  const distanceInKm = calculatedDistance || 0;
-  const baseFare = fare || 0; // Use backend calculated fare
-  const totalAmount = baseFare - discount;
+   const distanceInKm = calculatedDistance || 0;
+   const selectedCarFare = selectedCarId && carOptions.length > 0 
+     ? carOptions.find(car => car.id === selectedCarId)?.fare || carOptions[0]?.fare || 0
+     : carOptions[0]?.fare || 0;
+   const totalAmount = selectedCarFare - discount;
 
 
 
@@ -733,7 +745,18 @@ const HourlyRental: React.FC = () => {
               </div>
             )}
 
-            <div className="bg-[#E7F5F3] p-4 rounded-md mb-4 md:mb-6">
+            {/* Car Selection */}
+            {carOptions && carOptions.length > 0 && (
+              <div className="mb-4 md:mb-6">
+                <CarSelector
+                  carOptions={carOptions}
+                  selectedCarId={selectedCarId || carOptions[0]?.id}
+                  onCarSelect={setSelectedCarId}
+                />
+              </div>
+            )}
+
+            {/* <div className="bg-[#E7F5F3] p-4 rounded-md mb-4 md:mb-6">
             <div className="flex items-center mb-3 relative">
                       <span className="text-gray-700 font-medium text-sm md:text-base">{t('guestInfo')}</span>
       <div
@@ -786,7 +809,7 @@ const HourlyRental: React.FC = () => {
                 </div>
               </div>
              
-            </div>
+            </div> */}
 
             <button
               onClick={handleCheckFare}
@@ -890,13 +913,11 @@ const HourlyRental: React.FC = () => {
                 <div className="space-y-4">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Base fare</span>
-                    <span className="font-medium text-gray-800">
-                      {pricingLoading
-                        ? 'Loading...'
-                        : fare !== null
-                        ? formatFare(fare)
-                        : formatFare(baseFare)}
-                    </span>
+                     <span className="font-medium text-gray-800">
+                       {pricingLoading
+                         ? 'Loading...'
+                         : formatFare(selectedCarFare)}
+                     </span>
                   </div>
                   {calculatedDistance && calculatedDistance > 0 && (
                     <div className="flex justify-between text-sm">
@@ -1019,6 +1040,34 @@ const HourlyRental: React.FC = () => {
             </div>
             <h2 className="text-2xl font-semibold text-green-700 mb-2 text-center">Booking Confirmed!</h2>
             <p className="text-gray-700 mb-4 text-center">Your ride has been booked successfully.</p>
+            
+            {/* Selected Car Information */}
+            {selectedCarId && carOptions.length > 0 && (
+              <div className="w-full mb-4 p-3 bg-gray-50 rounded-lg">
+                {(() => {
+                  const selectedCar = carOptions.find(car => car.id === selectedCarId) || carOptions[0];
+                  return (
+                    <div className="flex items-center space-x-3">
+                      <img 
+                        src={`/${selectedCar.image}`} 
+                        alt={selectedCar.name}
+                        className="w-12 h-8 object-contain"
+                      />
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-900">{selectedCar.name}</div>
+                        <div className="text-sm text-gray-600">
+                          {selectedCar.capacity} seats • {selectedCar.luggage} luggage
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-bold text-lg text-gray-900">₹{formatFare(selectedCar.fare)}</div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+            
             {rideId && (
               <div className="flex flex-col items-center mb-2 w-full">
                 <span className="text-gray-600 text-sm mb-1">Ride ID:</span>

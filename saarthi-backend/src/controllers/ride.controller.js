@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const { calcFareWithDistance } = require("../utils/fare");
 const airportConfig = require("../config/airports");
 const { validateRideServiceArea } = require("../utils/locationValidator");
+const carInventory = require("../config/carInventory");
 
 
 exports.checkFareAndCreateRide = async (req, res, next) => {
@@ -20,7 +21,8 @@ exports.checkFareAndCreateRide = async (req, res, next) => {
       drop_lng,
       pickup_datetime,
       airport_direction,
-      airport_terminal
+      airport_terminal,
+      selected_car_id
     } = req.body;
 
 
@@ -150,6 +152,22 @@ exports.checkFareAndCreateRide = async (req, res, next) => {
 
     const { fare, distance, breakdown } = fareData;
 
+    // Handle car selection
+    let selectedCar = null;
+    let finalFare = fare;
+    
+    if (selected_car_id) {
+      selectedCar = carInventory.getCarById(selected_car_id);
+      if (!selectedCar) {
+        return res.status(400).json({
+          message: `Invalid car selection: ${selected_car_id}. Available cars: ${carInventory.getAvailableCars().map(c => c.id).join(', ')}`
+        });
+      }
+      
+      // Calculate final fare based on selected car
+      finalFare = carInventory.calculateCarFare(fare, selected_car_id);
+    }
+
     // Ride creation
    const rideData = {
   user: user_id,
@@ -164,10 +182,21 @@ exports.checkFareAndCreateRide = async (req, res, next) => {
   dropLat: drop_lat ?? null,
   dropLng: drop_lng ?? null,
 
-  fare,
+  fare: finalFare,
   distance: distance,
   status: "pending"
 };
+
+// Add selected car information if provided
+if (selectedCar) {
+  rideData.selectedCar = {
+    carId: selectedCar.id,
+    carName: selectedCar.name,
+    carImage: selectedCar.image,
+    carType: selectedCar.type,
+    carFare: finalFare
+  };
+}
 
 // Add airport-only fields
 if (ride_type === "airport-transfer") {
@@ -177,15 +206,29 @@ if (ride_type === "airport-transfer") {
 
 const ride = await Ride.create(rideData);
 
+    // Get all available car options with calculated fares
+    const carOptions = carInventory.getCarOptions(fare);
+
     res.json({
       message: "Ride created with pending status",
       ride_id: ride._id,
-      fare_details: { 
-        fare, 
-        ride_type,
-        distance,
-        breakdown 
-      }
+      ride_type,
+      distance,
+      car_options: carOptions.map(car => ({
+        ...car,
+        breakdown: {
+          ...breakdown,
+          total: `₹${car.fare}`,
+          formula: breakdown.formula.replace(/₹\d+/, `₹${car.fare}`)
+        }
+      })),
+      selected_car: selectedCar ? {
+        id: selectedCar.id,
+        name: selectedCar.name,
+        image: selectedCar.image,
+        type: selectedCar.type,
+        fare: finalFare
+      } : null
     });
 
   } catch (err) {
