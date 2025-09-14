@@ -6,6 +6,7 @@ const fare = require("../controllers/fare.controller");
 const ride = require("../controllers/ride.controller");
 const invoice = require("../controllers/invoice.controller");
 const testimonial = require("../controllers/testimonial.controller");
+const pricingRoutes = require("./pricing.routes");
 
 const router = express.Router();
 
@@ -71,5 +72,10 @@ router.post("/ride/cancel", ride.cancelRide);
 
 // Public: Get testimonials
 router.get("/testimonials", testimonial.getAll);
+
+/* -------------------------- Pricing -------------------------- */
+
+// Pricing routes
+router.use("/pricing", pricingRoutes);
 
 module.exports = router;

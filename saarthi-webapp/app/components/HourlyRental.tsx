@@ -2,55 +2,73 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Calendar, MapPin, Info, Plane, Clock, StepBack, SendToBackIcon, ArrowLeft, Navigation } from 'lucide-react';
 import { calculateFareHourly, confirmBooking } from '../services/apiService';
+import { calculatePricing, formatFare, formatDistance, getFareBreakdownText, PricingResponse } from '../services/pricingService';
 import { useLanguage } from '../contexts/LanguageContext';
 import { toast } from 'react-hot-toast';
 import ScheduleSelector from './ScheduleSelector';
 
-// Adjusted fare API call to match new API signature
-const useHourlyRentalFare = () => {
-  const [apiFare, setApiFare] = React.useState<number | null>(null);
-  const [apiFareLoading, setApiFareLoading] = React.useState(false);
-  const [apiFareError, setApiFareError] = React.useState<string | null>(null);
-  const [rideId, setRideId] = React.useState<string | null>(null);
+// New pricing hook using backend pricing API
+const useHourlyRentalPricing = () => {
+  const [pricingData, setPricingData] = React.useState<PricingResponse['data'] | null>(null);
+  const [pricingLoading, setPricingLoading] = React.useState(false);
+  const [pricingError, setPricingError] = React.useState<string | null>(null);
 
-  const checkFare = async (
-    userId: string,
+  const calculatePrice = async (
     hours: number,
     pickupLocation: string,
     pickupLat: number,
     pickupLng: number,
-    pickupDatetime: string
+    dropLocation?: string,
+    dropLat?: number,
+    dropLng?: number
   ) => {
-    setApiFareLoading(true);
-    setApiFareError(null);
+    setPricingLoading(true);
+    setPricingError(null);
+    setPricingData(null);
+    
     try {
-      const fareData = await calculateFareHourly(
-        userId,
-        hours,
-        pickupLocation,
-        pickupLat,
-        pickupLng,
-        pickupDatetime
-      );
-      if (fareData && fareData.fare_details) {
-        setApiFare(fareData.fare_details.fare);
-        setRideId(fareData?.ride_id);
-      } else if (fareData && typeof fareData.fare === 'number') {
-        setApiFare(fareData.fare);
-        setRideId(fareData.ride_id || null);
-      } else if (typeof fareData === 'number') {
-        setApiFare(fareData);
+      const response = await calculatePricing({
+        ride_type: 'hourly',
+        pickup_location: pickupLocation,
+        pickup_lat: pickupLat,
+        pickup_lng: pickupLng,
+        drop_location: dropLocation,
+        drop_lat: dropLat,
+        drop_lng: dropLng,
+        hours: hours
+      });
+
+      if (response.success && response.data) {
+        setPricingData(response.data);
       } else {
-        setApiFareError('Could not fetch fare from server.');
+        setPricingError(response.message || 'Could not calculate pricing');
+        if (response.error === 'OUTSIDE_SERVICE_AREA') {
+          toast.error('Service not available in this area', {
+            duration: 4000,
+            position: 'top-center',
+          });
+        }
       }
-    } catch {
-      setApiFareError('Could not fetch fare from server.');
+    } catch (error: any) {
+      setPricingError(error.message || 'Could not calculate pricing');
+      toast.error('Failed to calculate pricing', {
+        duration: 4000,
+        position: 'top-center',
+      });
     } finally {
-      setApiFareLoading(false);
+      setPricingLoading(false);
     }
   };
 
-  return { apiFare, apiFareLoading, apiFareError, rideId, checkFare };
+  return { 
+    pricingData, 
+    pricingLoading, 
+    pricingError, 
+    calculatePrice,
+    fare: pricingData?.fare || null,
+    distance: pricingData?.distance || null,
+    breakdown: pricingData?.breakdown || null
+  };
 };
 
 // Declare Google Maps types
@@ -62,6 +80,7 @@ declare global {
 
 const HourlyRental: React.FC = () => {
   const { t } = useLanguage();
+  const { pricingData, pricingLoading, pricingError, calculatePrice, fare, distance: calculatedDistance, breakdown } = useHourlyRentalPricing();
   const mode = process.env.NEXT_PUBLIC_MODE || 'prod';
 
 
@@ -91,7 +110,7 @@ const HourlyRental: React.FC = () => {
   // Carousel state for quotes (used in step 1)
   const [currentQuoteIndex, setCurrentQuoteIndex] = useState<number>(0);
   const quotes = [
-    "Shoffr has partnered with non-profits to provide up to ₹15,000 per year to drivers for the education of their children.",
+    "Saarthi has partnered with non-profits to provide up to ₹15,000 per year to drivers for the education of their children.",
     "Our drivers are trained to ensure your safety and comfort during every ride.",
     t('bookWithUsMessage')
   ];
@@ -142,42 +161,46 @@ const HourlyRental: React.FC = () => {
           setToCoords(data.toCoords || null);
           setDistance(data.distance || '');
           setHours(data.hours || '');
-          // Call check fare API with restored data
+          // Calculate pricing with restored data using new API
           (async () => {
-            setApiFareLoading(true);
-            setApiFareError(null);
-            let phoneNumber = '';
-            let userId = '';
             try {
-              const parsedUser = JSON.parse(user);
-              phoneNumber = parsedUser.phoneNumber || '';
-              userId = parsedUser._id || '';
-            } catch {}
-            try {
-              const fareData = await calculateFareHourly(
-                userId,
+              await calculatePrice(
                 Number(data.hours),
                 data.locationFrom,
                 data.fromCoords?.lat || 0,
                 data.fromCoords?.lng || 0,
-                data.schedule
+                data.locationTo,
+                data.toCoords?.lat,
+                data.toCoords?.lng
               );
-              if (fareData && fareData.fare_details) {
-                setApiFare(fareData.fare_details.fare);
-                setRideId(fareData?.ride_id);
-              } else if (fareData && typeof fareData.fare === 'number') {
-                setApiFare(fareData.fare);
-                setRideId(fareData.ride_id || null);
-              } else if (typeof fareData === 'number') {
-                setApiFare(fareData);
-              } else {
-                setApiFareError('Could not fetch fare from server.');
+              
+              // If pricing was successful, also create the ride for backward compatibility
+              if (pricingData && !pricingError) {
+                let userId = '';
+                try {
+                  const parsedUser = JSON.parse(user);
+                  userId = parsedUser._id || '';
+                } catch {}
+                
+                const fareData = await calculateFareHourly(
+                  userId,
+                  Number(data.hours),
+                  data.locationFrom,
+                  data.fromCoords?.lat || 0,
+                  data.fromCoords?.lng || 0,
+                  data.schedule
+                );
+                
+                if (fareData?.ride_id) {
+                  setRideId(fareData.ride_id);
+                }
+                
+                setBookingStep('complete');
               }
-              setBookingStep('complete');
-            } catch {
-              setApiFareError('Could not fetch fare from server.');
-            } finally {
-              setApiFareLoading(false);
+              
+              localStorage.removeItem('pendingHourlyRental');
+            } catch (error) {
+              console.error('Error restoring hourly rental data:', error);
               localStorage.removeItem('pendingHourlyRental');
             }
           })();
@@ -451,17 +474,16 @@ const HourlyRental: React.FC = () => {
     }
   };
 
-  const [apiFare, setApiFare] = useState<number | null>(null);
-  const [apiFareLoading, setApiFareLoading] = useState(false);
-  const [apiFareError, setApiFareError] = useState<string | null>(null);
   const [rideId, setRideId] = useState<string | null>(null);
   const [showBookingDialog, setShowBookingDialog] = useState(false);
 
   const handleCheckFare = async () => {
-    if (!locationFrom  || !schedule || !hours) {
+    if (!locationFrom || !schedule || !hours) {
       alert('Please fill in all required fields.');
       return;
     }
+
+    // Check if user is logged in
     let user = null;
     if (typeof window !== 'undefined') {
       user = localStorage.getItem('user');
@@ -488,40 +510,48 @@ const HourlyRental: React.FC = () => {
       }
       return;
     }
-    setApiFareLoading(true);
-    setApiFareError(null);
-    try {
-      let phoneNumber = '';
-      let userId = '';
-      if (user) {
-        const parsed = JSON.parse(user);
-        phoneNumber = parsed.phoneNumber || '';
-        userId = parsed._id || '';
+
+    // Calculate pricing using new backend API
+    await calculatePrice(
+      Number(hours),
+      locationFrom,
+      fromCoords?.lat || 0,
+      fromCoords?.lng || 0,
+      locationTo,
+      toCoords?.lat,
+      toCoords?.lng
+    );
+
+    // If pricing calculation was successful, create the ride
+    if (pricingData && !pricingError) {
+      try {
+        let userId = '';
+        if (user) {
+          const parsed = JSON.parse(user);
+          userId = parsed._id || '';
+        }
+        
+        // Still need to create the ride using the old API for now
+        const fareData = await calculateFareHourly(
+          userId,
+          Number(hours),
+          locationFrom,
+          fromCoords?.lat || 0,
+          fromCoords?.lng || 0,
+          schedule
+        );
+        
+        if (fareData?.ride_id) {
+          setRideId(fareData.ride_id);
+        }
+        
+        setBookingStep('complete');
+      } catch (err) {
+        toast.error('Failed to create ride booking', {
+          duration: 4000,
+          position: 'top-center',
+        });
       }
-      const fareData = await calculateFareHourly(
-        userId,
-        Number(hours),
-        locationFrom,
-        fromCoords?.lat || 0,
-        fromCoords?.lng || 0,
-        schedule
-      );
-      if (fareData && fareData.fare_details) {
-        setApiFare(fareData.fare_details.fare);
-        setRideId(fareData?.ride_id);
-      } else if (fareData && typeof fareData.fare === 'number') {
-        setApiFare(fareData.fare);
-        setRideId(fareData.ride_id || null);
-      } else if (typeof fareData === 'number') {
-        setApiFare(fareData);
-      } else {
-        setApiFareError('Could not fetch fare from server.');
-      }
-      setBookingStep('complete');
-    } catch (err) {
-      setApiFareError('Could not fetch fare from server.');
-    } finally {
-      setApiFareLoading(false);
     }
   };
 
@@ -555,8 +585,8 @@ const HourlyRental: React.FC = () => {
     return `${time} - ${formattedDate}`;
   };
 
-  const distanceInKm = parseFloat(distance);
-  const baseFare = apiFare !== null ? apiFare : distanceInKm * 20; // Prefer API fare
+  const distanceInKm = calculatedDistance || 0;
+  const baseFare = fare || 0; // Use backend calculated fare
   const totalAmount = baseFare - discount;
 
 
@@ -792,10 +822,10 @@ const HourlyRental: React.FC = () => {
 
             <button
               onClick={handleCheckFare}
-              className={`w-full bg-[#016B5D] text-white py-3 rounded-full hover:bg-[#014D40] transition-colors font-medium text-sm md:text-base flex items-center justify-center ${apiFareLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-              disabled={apiFareLoading}
+              className={`w-full bg-[#016B5D] text-white py-3 rounded-full hover:bg-[#014D40] transition-colors font-medium text-sm md:text-base flex items-center justify-center ${pricingLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              disabled={pricingLoading}
             >
-              {apiFareLoading ? (
+              {pricingLoading ? (
                 <span className="flex items-center justify-center">
                   <svg
                     className="animate-spin h-5 w-5 mr-2 text-white"
@@ -893,22 +923,19 @@ const HourlyRental: React.FC = () => {
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Base fare</span>
                     <span className="font-medium text-gray-800">
-                      {apiFareLoading
+                      {pricingLoading
                         ? 'Loading...'
-                        : apiFare !== null
-                        ? Math.round(apiFare)
-                        : Math.round(baseFare)}
-
-                        {
-                          " "
-                        }
-                        {"INR"}
+                        : fare !== null
+                        ? formatFare(fare)
+                        : formatFare(baseFare)}
                     </span>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Distance ({distance} km)</span>
-                    <span className="font-medium text-gray-800">{distance} km</span>
-                  </div>
+                  {calculatedDistance && calculatedDistance > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Distance</span>
+                      <span className="font-medium text-gray-800">{formatDistance(calculatedDistance)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Discount</span>
                     <span className="font-medium text-green-600">-{discount}</span>
@@ -928,21 +955,15 @@ const HourlyRental: React.FC = () => {
                       Apply
                     </button>
                   </div>
-                  {apiFareError && (
-                    <div className="text-red-600 text-xs">{apiFareError}</div>
+                  {pricingError && (
+                    <div className="text-red-600 text-xs">{pricingError}</div>
                   )}
                   <div className="flex justify-between pt-4 border-t border-gray-300 mt-4 text-base font-medium">
                     <span>Total Amount</span>
                     <span>
-                      {apiFareLoading
+                      {pricingLoading
                         ? 'Loading...'
-                        : apiFare !== null
-                        ? Math.round(totalAmount)
-                        : Math.round(totalAmount)}
-                        {
-                          " "
-                        }
-                        {"INR"}
+                        : formatFare(totalAmount)}
                     </span>
                   </div>
                 </div>

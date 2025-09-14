@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Calendar, MapPin, Info, Plane, ArrowLeft, Navigation } from 'lucide-react';
 import { cancelRide, calculateFareAirTransfer, confirmBooking } from '../services/apiService';
+import { calculatePricing, formatFare, formatDistance, getFareBreakdownText, PricingResponse } from '../services/pricingService';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
@@ -20,6 +21,69 @@ const checkFareApi = async (data: any) => {
     toast.error('Failed to check fare');
     throw error;
   }
+};
+
+// New pricing hook using backend pricing API for airport transfers
+const useAirportTransferPricing = () => {
+  const [pricingData, setPricingData] = React.useState<PricingResponse['data'] | null>(null);
+  const [pricingLoading, setPricingLoading] = React.useState(false);
+  const [pricingError, setPricingError] = React.useState<string | null>(null);
+
+  const calculatePrice = async (
+    tripType: 'drop' | 'pickup',
+    locationFrom: string,
+    locationTo: string,
+    fromCoords: { lat: number, lng: number } | null,
+    toCoords: { lat: number, lng: number } | null,
+    selectedAirport: string
+  ) => {
+    setPricingLoading(true);
+    setPricingError(null);
+    setPricingData(null);
+    
+    try {
+      const response = await calculatePricing({
+        ride_type: 'airport-transfer',
+        pickup_location: tripType === 'drop' ? locationFrom : undefined,
+        drop_location: tripType === 'pickup' ? locationTo : undefined,
+        pickup_lat: tripType === 'drop' ? fromCoords?.lat : undefined,
+        pickup_lng: tripType === 'drop' ? fromCoords?.lng : undefined,
+        drop_lat: tripType === 'pickup' ? toCoords?.lat : undefined,
+        drop_lng: tripType === 'pickup' ? toCoords?.lng : undefined,
+        selected_airport: selectedAirport
+      });
+
+      if (response.success && response.data) {
+        setPricingData(response.data);
+      } else {
+        setPricingError(response.message || 'Could not calculate pricing');
+        if (response.error === 'OUTSIDE_SERVICE_AREA') {
+          toast.error('Service not available in this area', {
+            duration: 4000,
+            position: 'top-center',
+          });
+        }
+      }
+    } catch (error: any) {
+      setPricingError(error.message || 'Could not calculate pricing');
+      toast.error('Failed to calculate pricing', {
+        duration: 4000,
+        position: 'top-center',
+      });
+    } finally {
+      setPricingLoading(false);
+    }
+  };
+
+  return { 
+    pricingData, 
+    pricingLoading, 
+    pricingError, 
+    calculatePrice,
+    fare: pricingData?.fare || null,
+    distance: pricingData?.distance || null,
+    breakdown: pricingData?.breakdown || null
+  };
 };
 
 // Declare Google Maps types
@@ -58,7 +122,7 @@ const AirportTransfer: React.FC = () => {
   // Carousel state for quotes (used in step 1)
   const [currentQuoteIndex, setCurrentQuoteIndex] = useState<number>(0);
   const quotes = [
-    "Shoffr has partnered with non-profits to provide up to ₹15,000 per year to drivers for the education of their children.",
+    "Saarthi has partnered with non-profits to provide up to ₹15,000 per year to drivers for the education of their children.",
     "Our drivers are trained to ensure your safety and comfort during every ride.",
     t('bookWithUsMessage')
   ];

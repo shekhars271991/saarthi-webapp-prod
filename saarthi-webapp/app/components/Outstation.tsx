@@ -56,7 +56,7 @@ const Outstation: React.FC = () => {
   // Carousel state for quotes (used in step 1)
   const [currentQuoteIndex, setCurrentQuoteIndex] = useState<number>(0);
   const quotes = [
-    "Shoffr has partnered with non-profits to provide up to ₹15,000 per year to drivers for the education of their children.",
+    "Saarthi has partnered with non-profits to provide up to ₹15,000 per year to drivers for the education of their children.",
     "Our drivers are trained to ensure your safety and comfort during every ride.",
     t('bookWithUsMessage')
   ];
