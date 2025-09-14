@@ -8,6 +8,7 @@ import axios from 'axios';
 import { toast } from 'react-hot-toast';
 import { listRides } from '../services/apiService';
 import ScheduleSelector from './ScheduleSelector';
+import AirportSelector from './AirportSelector';
 import { useLanguage } from '../contexts/LanguageContext';
 import { airportConfig } from '../config/airports';
 import { serviceAreaConfig } from '../config/serviceArea';
@@ -804,39 +805,19 @@ const AirportTransfer: React.FC = () => {
                     </div>
                   )}
 
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
-                    <select
-                      value={locationTo}
-                      onChange={(e) => setLocationTo(e.target.value)}
-                      className="w-full border border-gray-300 rounded-md pl-10 py-2 md:3 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-teal-600"
-                    >
-                      <option value="">{t('selectDropTerminal')}</option>
-                      {airportConfig.availableAirports.map((airport) => (
-                        <option key={airport} value={airport}>
-                          {airportConfig.airportDisplayNames[airport as keyof typeof airportConfig.airportDisplayNames] || airport}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  <AirportSelector
+                    value={locationTo}
+                    onChange={setLocationTo}
+                    tripType="drop"
+                  />
                 </>
               ) : (
                 <>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
-                    <select
-                      value={locationFrom}
-                      onChange={(e) => setLocationFrom(e.target.value)}
-                      className="w-full border border-gray-300 rounded-md pl-10 py-2 md:py-3 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-teal-600"
-                    >
-                      <option value="">{t('selectPickupTerminal')}</option>
-                      {airportConfig.availableAirports.map((airport) => (
-                        <option key={airport} value={airport}>
-                          {airportConfig.airportDisplayNames[airport as keyof typeof airportConfig.airportDisplayNames] || airport}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  <AirportSelector
+                    value={locationFrom}
+                    onChange={setLocationFrom}
+                    tripType="pickup"
+                  />
 
                   <div className="relative">
                     <MapPin className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
