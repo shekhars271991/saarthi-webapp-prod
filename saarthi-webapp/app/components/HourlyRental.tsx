@@ -6,6 +6,7 @@ import { calculatePricing, formatFare, formatDistance, getFareBreakdownText, Pri
 import { useLanguage } from '../contexts/LanguageContext';
 import { toast } from 'react-hot-toast';
 import ScheduleSelector from './ScheduleSelector';
+import RideTypeNavigation from './RideTypeNavigation';
 
 // New pricing hook using backend pricing API
 const useHourlyRentalPricing = () => {
@@ -619,6 +620,10 @@ const HourlyRental: React.FC = () => {
       <div className={`${bookingStep === 'form' ? 'flex-1 md:w-1/2 p-6 md:p-12' : 'w-full  p-4 md:p-12 flex flex-col'}`}>
         {bookingStep === 'form' ? (
           <div className="w-full max-w-md mx-auto">
+            {/* Ride Type Navigation */}
+            <div className="mb-6">
+              <RideTypeNavigation currentType="hourly-rental" />
+            </div>
             <h2 className="text-xl md:text-2xl font-semibold mb-4 md:mb-6">{t('hourlyRental')}</h2>
               <div className="space-y-3 md:space-y-4 mb-4 md:mb-6">
   <div className="relative">
@@ -1075,7 +1080,7 @@ const HourlyRental: React.FC = () => {
         </div>
       </div>
     )}
-  </div>
+    </div>
   );
 };
 

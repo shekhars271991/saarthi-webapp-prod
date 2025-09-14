@@ -11,6 +11,7 @@ import ScheduleSelector from './ScheduleSelector';
 import { useLanguage } from '../contexts/LanguageContext';
 import { airportConfig } from '../config/airports';
 import { serviceAreaConfig } from '../config/serviceArea';
+import RideTypeNavigation from './RideTypeNavigation';
 
 // New fare check API endpoint from Postman collection
 const checkFareApi = async (data: any) => {
@@ -726,7 +727,11 @@ const AirportTransfer: React.FC = () => {
       <div className={`${bookingStep === 'form' ? 'flex-1 md:w-1/2 p-6 md:p-12' : 'w-full  p-4 md:p-12 flex flex-col'}`}>
         {bookingStep === 'form' ? (
           <div className="w-full max-w-md mx-auto">
-                            <h2 className="text-xl md:text-2xl font-semibold mb-4 md:mb-6">{t('airportTransfers')}</h2>
+            {/* Ride Type Navigation */}
+            <div className="mb-6">
+              <RideTypeNavigation currentType="airport-transfer" />
+            </div>
+            <h2 className="text-xl md:text-2xl font-semibold mb-4 md:mb-6">{t('airportTransfers')}</h2>
 
             <div className="flex mb-4 md:mb-6">
               <button
@@ -1272,8 +1277,8 @@ const AirportTransfer: React.FC = () => {
         </div>
       </div>
     )}
-  </div>
-    );
+    </div>
+  );
   };
 
 export default AirportTransfer;
