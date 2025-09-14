@@ -54,13 +54,6 @@ const Outstation: React.FC = () => {
   const [distance, setDistance] = useState<string>('');
   const [isGettingLocation, setIsGettingLocation] = useState<boolean>(false);
 
-  // Carousel state for quotes (used in step 1)
-  const [currentQuoteIndex, setCurrentQuoteIndex] = useState<number>(0);
-  const quotes = [
-    "Saarthi has partnered with non-profits to provide up to ₹15,000 per year to drivers for the education of their children.",
-    "Our drivers are trained to ensure your safety and comfort during every ride.",
-    t('bookWithUsMessage')
-  ];
 
   const fromInputRef = useRef<HTMLInputElement>(null);
   const toInputRef = useRef<HTMLInputElement>(null);
@@ -206,14 +199,6 @@ useEffect(() => {
   }, [fromCoords, toCoords]);
 
   // Auto-rotate quotes every 5 seconds (for step 1)
-  useEffect(() => {
-    if (bookingStep === 'form') {
-      const interval = setInterval(() => {
-        setCurrentQuoteIndex((prevIndex) => (prevIndex + 1) % quotes.length);
-      }, 5000);
-      return () => clearInterval(interval);
-    }
-  }, [bookingStep, quotes.length]);
 
   // Handle input changes and show suggestions
   const handleFromInputChange = (value: string) => {
@@ -555,25 +540,14 @@ useEffect(() => {
 
   return (
     <div className="min-h-screen bg-white flex flex-col md:flex-row">
-      {/* Left Section - Only shown in Step 1 */}
+      {/* Left Section - Buddha Image */}
       {bookingStep === 'form' && (
-        <div className="md:w-1/2 bg-[#1A1C21] text-white flex flex-col justify-center items-center p-6 md:p-12">
-          <div className="max-w-md text-center">
-            <h2 className="text-xl md:text-2xl font-semibold mb-4 md:mb-6">{t('didYouKnow')}</h2>
-            <p className="text-gray-300 text-base md:text-lg leading-relaxed min-h-[100px] transition-opacity duration-500">
-              {quotes[currentQuoteIndex]}
-            </p>
-            <div className="mt-6 md:mt-8 flex justify-center space-x-2">
-              {quotes.map((_, index) => (
-                <div
-                  key={index}
-                  className={`w-2 h-2 md:w-3 md:h-3 rounded-full ${
-                    index === currentQuoteIndex ? 'bg-teal-500' : 'bg-gray-500'
-                  }`}
-                />
-              ))}
-            </div>
-          </div>
+        <div className="w-full md:w-1/2 h-64 md:h-auto relative overflow-hidden">
+          <div 
+            className="absolute inset-0 bg-cover bg-center"
+            style={{ backgroundImage: 'url(/bodh-gaya3.jpeg)' }}
+          />
+          <div className="absolute inset-0 bg-black bg-opacity-10" />
         </div>
       )}
 
