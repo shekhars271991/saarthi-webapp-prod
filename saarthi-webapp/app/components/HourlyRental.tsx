@@ -7,6 +7,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { toast } from 'react-hot-toast';
 import ScheduleSelector from './ScheduleSelector';
 import RideTypeNavigation from './RideTypeNavigation';
+import HoursSelector from './HoursSelector';
 
 // New pricing hook using backend pricing API
 const useHourlyRentalPricing = () => {
@@ -599,24 +600,12 @@ const HourlyRental: React.FC = () => {
               <RideTypeNavigation currentType="hourly-rental" />
             </div>
             <h2 className="text-xl md:text-2xl font-semibold mb-4 md:mb-6">{t('hourlyRental')}</h2>
-              <div className="space-y-3 md:space-y-4 mb-4 md:mb-6">
-  <div className="relative">
-            <Clock className="absolute left-3 top-3 text-gray-400" />
-            <select
-              value={hours}
-              onChange={(e) => setHours(e.target.value)}
-             className="w-full border border-gray-300 rounded-md pl-10 py-2 md:py-3 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-teal-600"
-            >
-                                    <option value="">{t('selectHours')}</option>
-              <option value="1">1 hour</option>
-              <option value="2">2 hours</option>
-              <option value="3">3 hours</option>
-              <option value="4">4 hours</option>
-              <option value="5">5 hours</option>
-              {/* Add more options as needed */}
-            </select>
-          </div>
-           </div>
+               <div className="mb-4 md:mb-6">
+                 <HoursSelector
+                   value={hours}
+                   onChange={setHours}
+                 />
+               </div>
 
             <div className="space-y-3 md:space-y-4 mb-4 md:mb-6">
               <div className="relative">
