@@ -1,12 +1,6 @@
-import Header from './components/Header';
-import FAQ from './components/FAQ';
-import Homepage from './components/HomePage';
+import { redirect } from 'next/navigation';
 
 export default function Home() {
-  return (
-    <div className="min-h-screen bg-white">
-      <Header />
-      <Homepage/>
-    </div>
-  );
+  // Server-side redirect - no loading needed
+  redirect('/airport-transfer');
 }
