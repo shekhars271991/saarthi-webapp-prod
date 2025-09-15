@@ -2,7 +2,9 @@ const { Schema, model, Types } = require("mongoose");
 
 const rideSchema = new Schema(
   {
-    user:           { type: Types.ObjectId, ref: "User" },
+    user:           { type: Types.ObjectId, ref: "User", required: false },
+    customerName:   { type: String, required: false },
+    customerPhone:  { type: String, required: false },
     type:           { type: String, enum: ["hourly", "outstation", "airport-transfer"], required: true },
     hours:          { type: Number, required: false },
     pickupLocation: String,

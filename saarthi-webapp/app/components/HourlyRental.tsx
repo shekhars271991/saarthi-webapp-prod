@@ -1082,12 +1082,12 @@ const HourlyRental: React.FC = () => {
                 </div>
               </div>
             )}
-            <a
-             href="/my-trips"
+            <button
+              onClick={() => window.location.href = '/'}
               className="mt-6 bg-[#016B5D] text-white px-6 py-2 rounded-full hover:bg-[#014D40] text-sm font-medium"
             >
-              Your Profile
-            </a>
+              Back to Home
+            </button>
           </div>
         </div>
       </div>

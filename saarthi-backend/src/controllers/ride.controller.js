@@ -11,6 +11,8 @@ exports.checkFareAndCreateRide = async (req, res, next) => {
   try {
     const {
       user_id,
+      customer_name,
+      customer_phone,
       ride_type,
       hours,
       pickup_location,
@@ -27,14 +29,29 @@ exports.checkFareAndCreateRide = async (req, res, next) => {
 
 
     // Validate common required fields
-    if (!user_id || !ride_type  || !pickup_datetime) {
+    if (!ride_type || !pickup_datetime) {
       return res.status(400).json({
-        message: "user_id, ride_type, and pickup_datetime are required"
+        message: "ride_type and pickup_datetime are required"
       });
     }
 
-    if (!mongoose.Types.ObjectId.isValid(user_id) || !(await User.exists({ _id: user_id }))) {
-      return res.status(404).json({ message: "User not found" });
+    // Check if we have either user_id or customer info
+    if (!user_id && (!customer_name || !customer_phone)) {
+      return res.status(400).json({
+        message: "Either user_id or both customer_name and customer_phone are required"
+      });
+    }
+
+    // Validate user if user_id is provided
+    if (user_id) {
+      if (!mongoose.Types.ObjectId.isValid(user_id) || !(await User.exists({ _id: user_id }))) {
+        return res.status(404).json({ message: "User not found" });
+      }
+    }
+
+    // Validate customer phone if provided
+    if (customer_phone && !/^\d{10}$/.test(customer_phone)) {
+      return res.status(400).json({ message: "customer_phone must be a 10-digit number" });
     }
    
     const parsedPickupDT = new Date(pickup_datetime);
@@ -170,7 +187,9 @@ exports.checkFareAndCreateRide = async (req, res, next) => {
 
     // Ride creation
    const rideData = {
-  user: user_id,
+  user: user_id || null,
+  customerName: customer_name || null,
+  customerPhone: customer_phone || null,
   type: ride_type,
   hours: ride_type === "hourly" ? hours : null,
 

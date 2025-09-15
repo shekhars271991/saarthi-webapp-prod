@@ -127,6 +127,9 @@ const AirportTransfer: React.FC = () => {
   const [apiFareError, setApiFareError] = useState<string | null>(null);
   const [rideId, setRideId] = useState<string | null>(null);
   const [showBookingDialog, setShowBookingDialog] = useState(false);
+  const [bookingCompleted, setBookingCompleted] = useState(false);
+  const [customerName, setCustomerName] = useState<string>('');
+  const [customerPhone, setCustomerPhone] = useState<string>('');
 
   const fromInputRef = useRef<HTMLInputElement>(null);
   const toInputRef = useRef<HTMLInputElement>(null);
@@ -166,95 +169,7 @@ const AirportTransfer: React.FC = () => {
     loadGoogleMapsScript();
   }, []);
 
-  // Restore pendingAirportTransfer after login
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const user = localStorage.getItem('user');
-      const pending = localStorage.getItem('pendingAirportTransfer');
-      if (user && pending) {
-        try {
-          const data = JSON.parse(pending);
-          setTripType(data.tripType || 'drop');
-          setLocationFrom(data.locationFrom || '');
-          setLocationTo(data.locationTo || '');
-          setSchedule(data.schedule || '');
-          setPassengers(data.passengers || 2);
-          setSuitcases(data.suitcases || 2);
-          setFlightNumber(data.flightNumber || '132');
-          setFromCoords(data.fromCoords || null);
-          setToCoords(data.toCoords || null);
-          
-          // Call check fare API with restored data using the same logic as handleCheckFare
-          (async () => {
-            if (!data.locationFrom || !data.locationTo || !data.schedule) {
-              localStorage.removeItem('pendingAirportTransfer');
-              return;
-            }
-
-            setApiFareLoading(true);
-            setApiFareError(null);
-            
-            let phoneNumber = '';
-            let userId = '';
-            try {
-              const parsedUser = JSON.parse(user);
-              phoneNumber = parsedUser.phoneNumber || '';
-              userId = parsedUser._id || '';
-            } catch {}
-            
-            try {
-              // Prepare data for new fare check API with airport_direction and airport_terminal
-              const fareRequestData = {
-                user_id: userId,
-                ride_type: 'airport-transfer',
-                hours: 0,
-                pickup_location: data.tripType === 'drop' ? data.locationFrom : '',
-                drop_location: data.tripType === 'pickup' ? data.locationTo : '',
-                pickup_lat: data.tripType === 'drop' ? data.fromCoords?.lat || 0 : 0,
-                pickup_lng: data.tripType === 'drop' ? data.fromCoords?.lng || 0 : 0,
-                drop_lat: data.tripType === 'pickup' ? data.toCoords?.lat || 0 : 0,
-                drop_lng: data.tripType === 'pickup' ? data.toCoords?.lng || 0 : 0,
-                pickup_datetime: data.schedule,
-                airport_direction: data.tripType === 'drop' ? 'to' : 'from',
-                airport_terminal: data.tripType === 'drop' ? data.locationTo : data.locationFrom,
-              };
-
-              const fareData = await checkFareApi(fareRequestData);
-              
-              // Handle the new API response format with car_options
-              if (fareData && fareData.car_options && Array.isArray(fareData.car_options)) {
-                setApiCarOptions(fareData.car_options);
-                setRideId(fareData?.ride_id);
-                
-                // Set the fare based on first car by default
-                if (fareData.car_options.length > 0) {
-                  setApiFare(fareData.car_options[0].fare);
-                }
-              } else if (fareData && fareData.fare_details) {
-                setApiFare(fareData.fare_details.fare);
-                setRideId(fareData?.ride_id);
-              } else if (fareData && typeof fareData.fare === 'number') {
-                setApiFare(fareData.fare);
-                setRideId(fareData?.ride_id || null);
-              } else if (typeof fareData === 'number') {
-                setApiFare(fareData);
-              } else {
-                setApiFareError('Could not fetch fare from server.');
-              }
-              setBookingStep('complete');
-            } catch {
-              setApiFareError('Could not fetch fare from server.');
-            } finally {
-              setApiFareLoading(false);
-              localStorage.removeItem('pendingAirportTransfer');
-            }
-          })();
-        } catch {
-          localStorage.removeItem('pendingAirportTransfer');
-        }
-      }
-    }
-  }, []);
+  // No longer need pending transfer logic since login is not required
 
   // Auto-select first car option when car options are loaded
   useEffect(() => {
@@ -552,49 +467,25 @@ const AirportTransfer: React.FC = () => {
   };
 
   const handleCheckFare = async () => {
-    if (!locationFrom || !locationTo || !schedule) {
-      alert('Please fill in all required fields.');
+    if (!locationFrom || !locationTo || !schedule || !customerName || !customerPhone) {
+      alert('Please fill in all required fields including name and phone number.');
       return;
     }
-    let user = null;
-    if (typeof window !== 'undefined') {
-      user = localStorage.getItem('user');
-    }
-    if (!user) {
-      // Store form data in localStorage and redirect to login
-      if (typeof window !== 'undefined') {
-        localStorage.setItem(
-          'pendingAirportTransfer',
-          JSON.stringify({
-            tripType,
-            locationFrom,
-            locationTo,
-            schedule,
-            passengers,
-            suitcases,
-            flightNumber,
-            fromCoords,
-            toCoords,
-          })
-        );
-        window.location.href = '/login?redirect=airport-transfer';
-      }
+    
+    // Validate phone number format
+    if (!/^\d{10}$/.test(customerPhone)) {
+      alert('Please enter a valid 10-digit phone number.');
       return;
     }
+    
     setApiFareLoading(true);
     setApiFareError(null);
     try {
-      let phoneNumber = '';
-      let userId = '';
-      if (user) {
-        const parsedUser = JSON.parse(user);
-        phoneNumber = parsedUser.phoneNumber || '';
-        userId = parsedUser._id || '';
-      }
       // Prepare data for new fare check API with airport_direction and airport_terminal
-      const finalSelectedCarId = selectedCarId || (carOptions.length > 0 ? carOptions[0].id : undefined);
+      const finalSelectedCarId = selectedCarId || (apiCarOptions.length > 0 ? apiCarOptions[0].id : undefined);
       const data = {
-        user_id: userId,
+        customer_name: customerName,
+        customer_phone: customerPhone,
         ride_type: 'airport-transfer',
         hours: 0,
         pickup_location: tripType === 'drop' ? locationFrom : '',
@@ -641,6 +532,9 @@ const AirportTransfer: React.FC = () => {
 
   const handleCloseDialog = () => {
     setShowBookingDialog(false);
+    setBookingCompleted(false);
+    // Navigate to home page
+    router.push('/');
   };
 
   const [username, setUsername] = useState<string>('');
@@ -731,6 +625,22 @@ const AirportTransfer: React.FC = () => {
   const handleCopyRideId = () => {
     if (rideId) {
       navigator.clipboard.writeText(rideId);
+      toast.success('Ride ID copied to clipboard!');
+    }
+  };
+
+  const handleFinalConfirmBooking = async () => {
+    if (!rideId) {
+      alert('No ride to confirm.');
+      return;
+    }
+    try {
+      await confirmBooking(rideId);
+      setBookingStatus('confirmed');
+      setBookingCompleted(true);
+      toast.success('Booking confirmed successfully!');
+    } catch (error) {
+      toast.error('Failed to confirm booking. Please try again.');
     }
   };
 
@@ -962,6 +872,42 @@ const AirportTransfer: React.FC = () => {
               />
             </div>
 
+            {/* Customer Information */}
+            <div className="bg-[#E7F5F3] p-4 rounded-md mb-4 md:mb-6">
+              <h3 className="text-base font-medium mb-3 text-gray-700">Contact Information</h3>
+              
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Full Name *
+                </label>
+                <input
+                  type="text"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  placeholder="Enter your full name"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-600 focus:border-transparent"
+                  required
+                />
+              </div>
+              
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Phone Number *
+                </label>
+                <input
+                  type="tel"
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  placeholder="Enter 10-digit phone number"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-600 focus:border-transparent"
+                  required
+                />
+                {customerPhone && !/^\d{10}$/.test(customerPhone) && (
+                  <p className="text-red-500 text-xs mt-1">Please enter a valid 10-digit phone number</p>
+                )}
+              </div>
+            </div>
+
   {/* Removed distance display as per new requirement */}
   {/* {distance && (
     <div className="mb-4 md:mb-6 p-3 bg-blue-50 rounded-md">
@@ -1182,14 +1128,22 @@ const AirportTransfer: React.FC = () => {
                   </div>
                 </div>
                 <div className="flex items-center justify-between mt-6 gap-3">
-                  <button
-                    onClick={handleCheckFare}
-                    className="bg-[#016B5D] text-white px-6 py-2 rounded-full hover:bg-[#014D40] text-sm font-medium flex-1"
-                  >
-                    Confirm Booking
-                  </button>
-
-                  
+                  {!rideId ? (
+                    <button
+                      onClick={handleCheckFare}
+                      className={`bg-[#016B5D] text-white px-6 py-2 rounded-full hover:bg-[#014D40] text-sm font-medium flex-1 ${apiFareLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      disabled={apiFareLoading}
+                    >
+                      {apiFareLoading ? 'Checking Fare...' : 'Check Fare'}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setShowBookingDialog(true)}
+                      className="bg-[#016B5D] text-white px-6 py-2 rounded-full hover:bg-[#014D40] text-sm font-medium flex-1"
+                    >
+                      Confirm Booking
+                    </button>
+                  )}
                 </div>
                 <br/>
                 <h6 className='text-xs'>You can make the payment directly to the driver via UPI after completion of the trip</h6>
@@ -1242,28 +1196,66 @@ const AirportTransfer: React.FC = () => {
             ×
           </button>
           <div className="flex flex-col items-center">
-            {/* Green tick or driver icon */}
+            {/* Icon - changes based on booking status */}
             <div className="mb-4">
-              <svg
-                className="mx-auto"
-                width="64"
-                height="64"
-                viewBox="0 0 64 64"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <circle cx="32" cy="32" r="32" fill="#10B981" />
-                <path
-                  d="M20 34L29 43L44 28"
-                  stroke="white"
-                  strokeWidth="4"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
+              {bookingCompleted ? (
+                <svg
+                  className="mx-auto"
+                  width="64"
+                  height="64"
+                  viewBox="0 0 64 64"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <circle cx="32" cy="32" r="32" fill="#10B981" />
+                  <path
+                    d="M20 34L29 43L44 28"
+                    stroke="white"
+                    strokeWidth="4"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              ) : (
+                <svg
+                  className="mx-auto"
+                  width="64"
+                  height="64"
+                  viewBox="0 0 64 64"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <circle cx="32" cy="32" r="32" fill="#016B5D" />
+                  <path
+                    d="M32 18V32L40 40"
+                    stroke="white"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <circle
+                    cx="32"
+                    cy="46"
+                    r="2"
+                    fill="white"
+                  />
+                </svg>
+              )}
             </div>
-            <h2 className="text-2xl font-semibold text-green-700 mb-2 text-center">Booking Confirmed!</h2>
-            <p className="text-gray-700 mb-4 text-center">Your ride has been booked successfully.</p>
+            
+            {bookingCompleted ? (
+              <>
+                <h2 className="text-2xl font-semibold text-green-700 mb-2 text-center">Booking Completed!</h2>
+                <p className="text-gray-700 mb-4 text-center">
+                  Your ride has been booked successfully. Our team will be reaching out to you shortly to confirm the details.
+                </p>
+              </>
+            ) : (
+              <>
+                <h2 className="text-2xl font-semibold text-gray-700 mb-2 text-center">Confirm Your Booking</h2>
+                <p className="text-gray-700 mb-4 text-center">Please confirm your ride booking details.</p>
+              </>
+            )}
             {rideId && (
               <div className="flex flex-col items-center mb-2 w-full">
                 <span className="text-gray-600 text-sm mb-1">Ride ID:</span>
@@ -1278,12 +1270,34 @@ const AirportTransfer: React.FC = () => {
                 </div>
               </div>
             )}
-            <a
-             href="/my-trips"
-              className="mt-6 bg-[#016B5D] text-white px-6 py-2 rounded-full hover:bg-[#014D40] text-sm font-medium"
-            >
-              Your Profile
-            </a>
+            {bookingCompleted ? (
+              <div className="flex flex-col items-center gap-3 mt-6">
+                <button
+                  onClick={handleCloseDialog}
+                  className="bg-[#016B5D] text-white px-8 py-2 rounded-full hover:bg-[#014D40] text-sm font-medium"
+                >
+                  Close
+                </button>
+                <p className="text-xs text-gray-500 text-center">
+                  Thank you for choosing our service!
+                </p>
+              </div>
+            ) : (
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={handleCloseDialog}
+                  className="px-6 py-2 rounded-full border border-gray-300 text-gray-700 hover:bg-gray-50 text-sm font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleFinalConfirmBooking}
+                  className="bg-[#016B5D] text-white px-6 py-2 rounded-full hover:bg-[#014D40] text-sm font-medium"
+                >
+                  Confirm Booking
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
