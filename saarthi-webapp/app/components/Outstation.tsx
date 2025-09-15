@@ -935,6 +935,9 @@ useEffect(() => {
                 <br/>
                 <h6 className='text-xs'>You can make the payment directly to the driver via UPI after completion of the trip</h6>
               </div>
+
+
+              
             </div>
           </div>
         )}

@@ -121,6 +121,12 @@ const AirportTransfer: React.FC = () => {
 
   const [bookingStatus, setBookingStatus] = useState<'confirmed' | 'completed' | null>(null);
   const [selectedCarId, setSelectedCarId] = useState<string | null>(null);
+  const [apiCarOptions, setApiCarOptions] = useState<any[]>([]);
+  const [apiFare, setApiFare] = useState<number | null>(null);
+  const [apiFareLoading, setApiFareLoading] = useState(false);
+  const [apiFareError, setApiFareError] = useState<string | null>(null);
+  const [rideId, setRideId] = useState<string | null>(null);
+  const [showBookingDialog, setShowBookingDialog] = useState(false);
 
   const fromInputRef = useRef<HTMLInputElement>(null);
   const toInputRef = useRef<HTMLInputElement>(null);
@@ -133,10 +139,11 @@ const AirportTransfer: React.FC = () => {
   // Use pricing hook
   const { pricingData, pricingLoading, pricingError, calculatePrice, distance: calculatedDistance, carOptions } = useAirportTransferPricing();
 
-  // Calculate selected car fare
-  const selectedCarFare = selectedCarId && carOptions.length > 0 
-    ? carOptions.find(car => car.id === selectedCarId)?.fare || carOptions[0]?.fare || 0
-    : carOptions[0]?.fare || 0;
+  // Calculate selected car fare - prioritize API car options
+  const currentCarOptions = apiCarOptions.length > 0 ? apiCarOptions : carOptions;
+  const selectedCarFare = selectedCarId && currentCarOptions.length > 0 
+    ? currentCarOptions.find(car => car.id === selectedCarId)?.fare || currentCarOptions[0]?.fare || 0
+    : currentCarOptions[0]?.fare || 0;
 
 
 
@@ -214,7 +221,16 @@ const AirportTransfer: React.FC = () => {
 
               const fareData = await checkFareApi(fareRequestData);
               
-              if (fareData && fareData.fare_details) {
+              // Handle the new API response format with car_options
+              if (fareData && fareData.car_options && Array.isArray(fareData.car_options)) {
+                setApiCarOptions(fareData.car_options);
+                setRideId(fareData?.ride_id);
+                
+                // Set the fare based on first car by default
+                if (fareData.car_options.length > 0) {
+                  setApiFare(fareData.car_options[0].fare);
+                }
+              } else if (fareData && fareData.fare_details) {
                 setApiFare(fareData.fare_details.fare);
                 setRideId(fareData?.ride_id);
               } else if (fareData && typeof fareData.fare === 'number') {
@@ -242,10 +258,11 @@ const AirportTransfer: React.FC = () => {
 
   // Auto-select first car option when car options are loaded
   useEffect(() => {
-    if (carOptions && carOptions.length > 0 && !selectedCarId) {
-      setSelectedCarId(carOptions[0].id);
+    const currentCarOptions = apiCarOptions.length > 0 ? apiCarOptions : carOptions;
+    if (currentCarOptions && currentCarOptions.length > 0 && !selectedCarId) {
+      setSelectedCarId(currentCarOptions[0].id);
     }
-  }, [carOptions, selectedCarId]);
+  }, [carOptions, apiCarOptions, selectedCarId]);
 
   // Initialize autocomplete with custom dropdown
   const initializeAutocomplete = () => {
@@ -509,8 +526,9 @@ const AirportTransfer: React.FC = () => {
   const [isTooltipVisible, setTooltipVisible] = useState(false);
   const [discount, setDiscount] = useState<number>(0);
 
-  // Calculate total amount
-  const totalAmount = selectedCarFare - discount;
+  // Calculate total amount - use API fare when available
+  const currentFare = apiFare !== null ? apiFare : selectedCarFare;
+  const totalAmount = currentFare - discount;
 
   const handleApplyCoupon = () => {
     if (coupon.toLowerCase() === 'save200') {
@@ -520,11 +538,18 @@ const AirportTransfer: React.FC = () => {
     }
   };
 
-  const [apiFare, setApiFare] = useState<number | null>(null);
-  const [apiFareLoading, setApiFareLoading] = useState(false);
-  const [apiFareError, setApiFareError] = useState<string | null>(null);
-  const [rideId, setRideId] = useState<string | null>(null);
-  const [showBookingDialog, setShowBookingDialog] = useState(false);
+  // Handle car selection and update fare
+  const handleCarSelect = (carId: string) => {
+    setSelectedCarId(carId);
+    
+    // Update fare based on selected car from API options
+    if (apiCarOptions.length > 0) {
+      const selectedCar = apiCarOptions.find(car => car.id === carId);
+      if (selectedCar) {
+        setApiFare(selectedCar.fare);
+      }
+    }
+  };
 
   const handleCheckFare = async () => {
     if (!locationFrom || !locationTo || !schedule) {
@@ -584,7 +609,18 @@ const AirportTransfer: React.FC = () => {
         selected_car_id: finalSelectedCarId
       };
       const fareData = await checkFareApi(data);
-      if (fareData && fareData.fare_details) {
+      
+      // Handle the new API response format with car_options
+      if (fareData && fareData.car_options && Array.isArray(fareData.car_options)) {
+        setApiCarOptions(fareData.car_options);
+        setRideId(fareData?.ride_id);
+        
+        // Set the fare based on selected car or first car
+        const selectedCar = fareData.car_options.find((car: any) => car.id === selectedCarId) || fareData.car_options[0];
+        if (selectedCar) {
+          setApiFare(selectedCar.fare);
+        }
+      } else if (fareData && fareData.fare_details) {
         setApiFare(fareData.fare_details.fare);
         setRideId(fareData?.ride_id);
       } else if (fareData && typeof fareData.fare === 'number') {
@@ -1085,13 +1121,13 @@ const AirportTransfer: React.FC = () => {
                 </div>
 
                 {/* Car Selection */}
-                {carOptions && carOptions.length > 0 && (
+                {currentCarOptions && currentCarOptions.length > 0 && (
                   <div className="mt-6">
                     <h3 className="text-lg font-medium mb-4">Select Your Car</h3>
                     <CarSelector
-                      carOptions={carOptions}
-                      selectedCarId={selectedCarId || carOptions[0]?.id}
-                      onCarSelect={setSelectedCarId}
+                      carOptions={currentCarOptions}
+                      selectedCarId={selectedCarId || currentCarOptions[0]?.id}
+                      onCarSelect={handleCarSelect}
                     />
                   </div>
                 )}
@@ -1104,9 +1140,9 @@ const AirportTransfer: React.FC = () => {
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Base fare</span>
                     <span className="font-medium text-gray-800">
-                      {pricingLoading
+                      {pricingLoading || apiFareLoading
                         ? 'Loading...'
-                        : formatFare(selectedCarFare)}
+                        : formatFare(apiFare !== null ? apiFare : selectedCarFare)}
                     </span>
                   </div>
                   {/* Removed distance display as per new requirement */}
@@ -1139,7 +1175,7 @@ const AirportTransfer: React.FC = () => {
                   <div className="flex justify-between pt-4 border-t border-gray-300 mt-4 text-base font-medium">
                     <span>Total Amount</span>
                     <span>
-                      {pricingLoading
+                      {pricingLoading || apiFareLoading
                         ? 'Loading...'
                         : formatFare(totalAmount)}
                     </span>

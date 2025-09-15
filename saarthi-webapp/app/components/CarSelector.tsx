@@ -36,7 +36,7 @@ const CarSelector: React.FC<CarSelectorProps> = ({
 
   return (
     <div className={`space-y-4 ${className}`}>
-      <h3 className="text-lg font-medium text-gray-900 mb-4">Select Your Car</h3>
+      {/* <h3 className="text-lg font-medium text-gray-900 mb-4">Select Your Car</h3> */}
       
       <div className="space-y-3">
         {carOptions.map((car) => (
@@ -51,7 +51,7 @@ const CarSelector: React.FC<CarSelectorProps> = ({
           >
             {/* Selection indicator */}
             {selectedCarId === car.id && (
-              <div className="absolute top-3 right-3 w-6 h-6 bg-teal-600 rounded-full flex items-center justify-center">
+              <div className="absolute top-2 right-2 w-6 h-6 bg-teal-600 rounded-full flex items-center justify-center z-10">
                 <Check className="w-4 h-4 text-white" />
               </div>
             )}
@@ -72,19 +72,19 @@ const CarSelector: React.FC<CarSelectorProps> = ({
 
               {/* Car Details */}
               <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center justify-between mb-2 pr-8">
                   <h4 className="text-base md:text-lg font-semibold text-gray-900 truncate">
                     {car.name}
                   </h4>
                   <div className="text-right">
                     <div className="text-lg md:text-xl font-bold text-gray-900">
-                      ₹{formatFare(car.fare)}
+                      {formatFare(car.fare)}
                     </div>
-                    {car.fareMultiplier !== 1.0 && (
+                    {/* {car.fareMultiplier !== 1.0 && (
                       <div className="text-xs text-gray-500">
                         {car.fareMultiplier < 1.0 ? 'Save' : 'Premium'} {Math.abs((car.fareMultiplier - 1) * 100).toFixed(0)}%
                       </div>
-                    )}
+                    )} */}
                   </div>
                 </div>
 
