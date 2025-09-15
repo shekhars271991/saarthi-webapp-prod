@@ -1110,20 +1110,10 @@ const AirportTransfer: React.FC = () => {
                   </div>
                 </div>
 
-                <div>
-                  <h3 className="text-lg font-medium mb-4">Booking policy</h3>
-                  <ul className="list-disc pl-5 space-y-3 text-gray-600 text-sm">
-                    <li>We do not charge any cancellation fee at the moment.</li>
-                    <li>You can cancel your trip anytime, though we would appreciate you giving 2 hours prior notice.</li>
-                    <li>Reach out at +91-7204323223 for any help.</li>
-                    <li>Rentals are available within city limits.</li>
-                  </ul>
-                </div>
-
-                {/* Car Selection */}
+                {/* Car Selection - Moved up */}
                 {currentCarOptions && currentCarOptions.length > 0 && (
-                  <div className="mt-6">
-                    <h3 className="text-lg font-medium mb-4">Select Your Car</h3>
+                  <div className="mt-4">
+                    <h3 className="text-base font-medium mb-3">Select Your Car</h3>
                     <CarSelector
                       carOptions={currentCarOptions}
                       selectedCarId={selectedCarId || currentCarOptions[0]?.id}
@@ -1131,12 +1121,22 @@ const AirportTransfer: React.FC = () => {
                     />
                   </div>
                 )}
+
+                <div className="mt-4">
+                  <h3 className="text-base font-medium mb-3">Booking policy</h3>
+                  <ul className="list-disc pl-4 space-y-2 text-gray-600 text-xs">
+                    <li>We do not charge any cancellation fee at the moment.</li>
+                    <li>You can cancel your trip anytime, though we would appreciate you giving 2 hours prior notice.</li>
+                    <li>Reach out at +91-7204323223 for any help.</li>
+                    <li>Rentals are available within city limits.</li>
+                  </ul>
+                </div>
               </div>
 
               {/* Fare Summary */}
-              <div className="md:w-[380px] h-[fit-content] bg-[#E7F5F3] p-6 rounded-lg">
-                <h3 className="text-lg font-medium mb-4">Fare Summary</h3>
-                <div className="space-y-4">
+              <div className="md:w-[380px] h-[fit-content] bg-[#E7F5F3] p-4 rounded-lg">
+                <h3 className="text-base font-medium mb-3">Fare Summary</h3>
+                <div className="space-y-3">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Base fare</span>
                     <span className="font-medium text-gray-800">

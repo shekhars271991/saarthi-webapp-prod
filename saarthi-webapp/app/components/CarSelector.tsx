@@ -35,15 +35,15 @@ const CarSelector: React.FC<CarSelectorProps> = ({
   }
 
   return (
-    <div className={`space-y-4 ${className}`}>
+    <div className={`space-y-2 ${className}`}>
       {/* <h3 className="text-lg font-medium text-gray-900 mb-4">Select Your Car</h3> */}
       
-      <div className="space-y-3">
+      <div className="space-y-2">
         {carOptions.map((car) => (
           <div
             key={car.id}
             onClick={() => onCarSelect(car.id)}
-            className={`relative border-2 rounded-lg p-4 cursor-pointer transition-all duration-200 ${
+            className={`relative border-2 rounded-lg p-3 cursor-pointer transition-all duration-200 ${
               selectedCarId === car.id
                 ? 'border-teal-600 bg-teal-50'
                 : 'border-gray-200 hover:border-gray-300 bg-white'
@@ -58,7 +58,7 @@ const CarSelector: React.FC<CarSelectorProps> = ({
 
             <div className="flex items-center space-x-4">
               {/* Car Image */}
-              <div className="flex-shrink-0 w-20 h-16 md:w-24 md:h-18">
+              <div className="flex-shrink-0 w-16 h-12 md:w-20 md:h-14">
                 <img
                   src={`/${car.image}`}
                   alt={car.name}
@@ -89,7 +89,7 @@ const CarSelector: React.FC<CarSelectorProps> = ({
                 </div>
 
                 {/* Car Specifications */}
-                <div className="flex items-center space-x-4 text-sm text-gray-600 mb-2">
+                <div className="flex items-center space-x-3 text-xs text-gray-600 mb-1">
                   <div className="flex items-center">
                     <Users className="w-4 h-4 mr-1" />
                     <span>{car.capacity} seats</span>
@@ -105,11 +105,11 @@ const CarSelector: React.FC<CarSelectorProps> = ({
 
                 {/* Features */}
                 {car.features && car.features.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
+                  <div className="flex flex-wrap gap-1 mt-1">
                     {car.features.map((feature, index) => (
                       <span
                         key={index}
-                        className="inline-block px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded"
+                        className="inline-block px-1.5 py-0.5 text-xs bg-gray-100 text-gray-600 rounded text-xs"
                       >
                         {feature}
                       </span>
@@ -131,10 +131,10 @@ const CarSelector: React.FC<CarSelectorProps> = ({
 
       {/* Selection Summary */}
       {selectedCarId && (
-        <div className="mt-4 p-3 bg-teal-50 rounded-md border border-teal-200">
+        <div className="mt-2 p-2 bg-teal-50 rounded-md border border-teal-200">
           <div className="flex items-center text-teal-800">
-            <Check className="w-4 h-4 mr-2" />
-            <span className="text-sm font-medium">
+            <Check className="w-3 h-3 mr-2" />
+            <span className="text-xs font-medium">
               {carOptions.find(car => car.id === selectedCarId)?.name} selected
             </span>
           </div>
