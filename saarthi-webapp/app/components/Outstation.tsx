@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Calendar, MapPin, Info, Plane, ArrowLeft, Navigation } from 'lucide-react';
+import Image from 'next/image';
 import { calculateFareOutstation, confirmBooking } from '../services/apiService';
 import { useLanguage } from '../contexts/LanguageContext';
 import ScheduleSelector from './ScheduleSelector';
@@ -543,9 +544,15 @@ useEffect(() => {
       {/* Left Section - Buddha Image */}
       {bookingStep === 'form' && (
         <div className="w-full md:w-1/2 h-64 md:h-auto relative overflow-hidden">
-          <div 
-            className="absolute inset-0 bg-cover bg-center"
-            style={{ backgroundImage: 'url(/bodh-gaya3.jpeg)' }}
+          <Image
+            src="/bodh-gaya3.jpeg"
+            alt="Bodh Gaya Buddha statue with SaarthiEV cars"
+            fill
+            className="object-cover"
+            style={{ objectPosition: 'center 40%' }}
+            priority
+            quality={95}
+            sizes="(max-width: 768px) 100vw, 50vw"
           />
           <div className="absolute inset-0 bg-black bg-opacity-10" />
         </div>

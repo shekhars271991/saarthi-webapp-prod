@@ -13,11 +13,21 @@ export default function Homepage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <section className="relative bg-cover bg-top bg-no-repeat overflow-visible h-screen" style={{ 
-        backgroundImage: 'url(/bodh-gaya3.jpeg)',
-        backgroundPosition: 'center top',
-        backgroundSize: 'cover'
-      }}>
+      <section className="relative overflow-hidden h-screen">
+        {/* High-quality background image */}
+        <div className="absolute inset-0">
+          <Image
+            src="/bodh-gaya3.jpeg"
+            alt="Bodh Gaya Buddha statue with SaarthiEV cars"
+            fill
+            className="object-cover"
+            style={{ objectPosition: 'center 30%' }}
+            priority
+            quality={95}
+            sizes="100vw"
+          />
+        </div>
+        
         {/* Content wrapper to contain all elements */}
         <div className="absolute inset-0 overflow-hidden">
           {/* Responsive background adjustments */}
