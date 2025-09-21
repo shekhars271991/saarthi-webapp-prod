@@ -9,12 +9,34 @@ const { calculateDistance } = require('./distance');
  * @returns {number} Calculated fare
  */
 exports.calcFare = ({ type, distance = 0, hours = 0 }) => {
-  // Get pricing from environment variables with fallback defaults
-  const AIRPORT_BASE_FARE = parseInt(process.env.AIRPORT_BASE_FARE) || 300;
-  const AIRPORT_PER_KM_RATE = parseInt(process.env.AIRPORT_PER_KM_RATE) || 15;
-  const HOURLY_PER_HOUR_RATE = parseInt(process.env.HOURLY_PER_HOUR_RATE) || 300;
-  const HOURLY_PER_KM_RATE = parseInt(process.env.HOURLY_PER_KM_RATE) || 15;
-  const OUTSTATION_PER_KM_RATE = parseInt(process.env.OUTSTATION_PER_KM_RATE) || 15;
+  // Get pricing from environment variables - NO DEFAULTS, FAIL IF MISSING
+  const AIRPORT_BASE_FARE = parseInt(process.env.AIRPORT_BASE_FARE);
+  const AIRPORT_PER_KM_RATE = parseInt(process.env.AIRPORT_PER_KM_RATE);
+  const HOURLY_PER_HOUR_RATE = parseInt(process.env.HOURLY_PER_HOUR_RATE);
+  const HOURLY_PER_KM_RATE = parseInt(process.env.HOURLY_PER_KM_RATE);
+  const OUTSTATION_PER_KM_RATE = parseInt(process.env.OUTSTATION_PER_KM_RATE);
+  
+  // Check for missing environment variables
+  const missingVars = [];
+  if (isNaN(AIRPORT_BASE_FARE)) missingVars.push('AIRPORT_BASE_FARE');
+  if (isNaN(AIRPORT_PER_KM_RATE)) missingVars.push('AIRPORT_PER_KM_RATE');
+  if (isNaN(HOURLY_PER_HOUR_RATE)) missingVars.push('HOURLY_PER_HOUR_RATE');
+  if (isNaN(HOURLY_PER_KM_RATE)) missingVars.push('HOURLY_PER_KM_RATE');
+  if (isNaN(OUTSTATION_PER_KM_RATE)) missingVars.push('OUTSTATION_PER_KM_RATE');
+  
+  if (missingVars.length > 0) {
+    const error = `Missing or invalid environment variables: ${missingVars.join(', ')}. Please check your .env file.`;
+    console.error('FARE CALCULATION ERROR:', error);
+    throw new Error(error);
+  }
+  
+  console.log('Fare calculation environment variables loaded:', {
+    AIRPORT_BASE_FARE,
+    AIRPORT_PER_KM_RATE,
+    HOURLY_PER_HOUR_RATE,
+    HOURLY_PER_KM_RATE,
+    OUTSTATION_PER_KM_RATE
+  });
 
   let fare = 0;
 
@@ -76,11 +98,26 @@ exports.calcFareWithDistance = async ({ type, origin, destination, hours = 0 }) 
  * @returns {Object} Fare breakdown details
  */
 const getFareBreakdown = ({ type, distance, hours, fare }) => {
-  const AIRPORT_BASE_FARE = parseInt(process.env.AIRPORT_BASE_FARE) || 300;
-  const AIRPORT_PER_KM_RATE = parseInt(process.env.AIRPORT_PER_KM_RATE) || 15;
-  const HOURLY_PER_HOUR_RATE = parseInt(process.env.HOURLY_PER_HOUR_RATE) || 300;
-  const HOURLY_PER_KM_RATE = parseInt(process.env.HOURLY_PER_KM_RATE) || 15;
-  const OUTSTATION_PER_KM_RATE = parseInt(process.env.OUTSTATION_PER_KM_RATE) || 15;
+  // Get pricing from environment variables - NO DEFAULTS, FAIL IF MISSING
+  const AIRPORT_BASE_FARE = parseInt(process.env.AIRPORT_BASE_FARE);
+  const AIRPORT_PER_KM_RATE = parseInt(process.env.AIRPORT_PER_KM_RATE);
+  const HOURLY_PER_HOUR_RATE = parseInt(process.env.HOURLY_PER_HOUR_RATE);
+  const HOURLY_PER_KM_RATE = parseInt(process.env.HOURLY_PER_KM_RATE);
+  const OUTSTATION_PER_KM_RATE = parseInt(process.env.OUTSTATION_PER_KM_RATE);
+  
+  // Check for missing environment variables
+  const missingVars = [];
+  if (isNaN(AIRPORT_BASE_FARE)) missingVars.push('AIRPORT_BASE_FARE');
+  if (isNaN(AIRPORT_PER_KM_RATE)) missingVars.push('AIRPORT_PER_KM_RATE');
+  if (isNaN(HOURLY_PER_HOUR_RATE)) missingVars.push('HOURLY_PER_HOUR_RATE');
+  if (isNaN(HOURLY_PER_KM_RATE)) missingVars.push('HOURLY_PER_KM_RATE');
+  if (isNaN(OUTSTATION_PER_KM_RATE)) missingVars.push('OUTSTATION_PER_KM_RATE');
+  
+  if (missingVars.length > 0) {
+    const error = `Missing or invalid environment variables in getFareBreakdown: ${missingVars.join(', ')}. Please check your .env file.`;
+    console.error('FARE BREAKDOWN ERROR:', error);
+    throw new Error(error);
+  }
 
   const breakdown = {
     distance: `${distance} km`,
