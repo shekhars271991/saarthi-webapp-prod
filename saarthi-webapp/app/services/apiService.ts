@@ -55,10 +55,11 @@ export const loginOtp = async (phone_number: string, otp: string) => {
   }
 };
 
-export const calculateFareHourly = async (user_id: string, hours: number, pickup_location: string, pickup_lat: number, pickup_lng: number, pickup_datetime: string, selected_car_id?: string) => {
+export const calculateFareHourly = async (customer_name: string, customer_phone: string, hours: number, pickup_location: string, pickup_lat: number, pickup_lng: number, pickup_datetime: string, selected_car_id?: string) => {
   try {
     const requestData: any = {
-      user_id,
+      customer_name,
+      customer_phone,
       ride_type: 'hourly',
       hours,
       pickup_location,
@@ -71,9 +72,12 @@ export const calculateFareHourly = async (user_id: string, hours: number, pickup
       requestData.selected_car_id = selected_car_id;
     }
     
+    console.log('Sending hourly rental request:', requestData);
     const response = await api.post('/fare/check', requestData);
+    console.log('Hourly rental response:', response.data);
     return response.data;
   } catch (error) {
+    console.error('Hourly rental API error:', error);
     handleError(error);
   }
 };

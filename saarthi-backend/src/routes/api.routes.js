@@ -39,7 +39,9 @@ router.post("/login", [
 
 // Unified fare check and ride creation
 router.post("/fare/check", [
-  body("user_id").isMongoId(),
+  body("user_id").optional().isMongoId(),
+  body("customer_name").optional().isString().notEmpty(),
+  body("customer_phone").optional().matches(/^\d{10}$/),
   body("ride_type").isIn(["hourly", "outstation", "airport-transfer"]),
 ], ride.checkFareAndCreateRide);
 

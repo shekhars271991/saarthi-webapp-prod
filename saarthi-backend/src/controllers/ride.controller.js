@@ -9,6 +9,7 @@ const carInventory = require("../config/carInventory");
 
 exports.checkFareAndCreateRide = async (req, res, next) => {
   try {
+    console.log('Received fare check request:', req.body);
     const {
       user_id,
       customer_name,

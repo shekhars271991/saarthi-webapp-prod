@@ -19,15 +19,15 @@ const HoursSelector: React.FC<HoursSelectorProps> = ({
   const [showDropdown, setShowDropdown] = useState<boolean>(false);
 
   const hoursOptions = [
-    { value: '1', label: '1 hour' },
-    { value: '2', label: '2 hours' },
-    { value: '3', label: '3 hours' },
-    { value: '4', label: '4 hours' },
-    { value: '5', label: '5 hours' },
-    { value: '6', label: '6 hours' },
-    { value: '8', label: '8 hours' },
-    { value: '10', label: '10 hours' },
-    { value: '12', label: '12 hours' }
+    { value: '1', label: '1 hour', includedKm: 10 },
+    { value: '2', label: '2 hours', includedKm: 20 },
+    { value: '3', label: '3 hours', includedKm: 30 },
+    { value: '4', label: '4 hours', includedKm: 40 },
+    { value: '5', label: '5 hours', includedKm: 50 },
+    { value: '6', label: '6 hours', includedKm: 60 },
+    { value: '8', label: '8 hours', includedKm: 80 },
+    { value: '10', label: '10 hours', includedKm: 100 },
+    { value: '12', label: '12 hours', includedKm: 120 }
   ];
 
   const handleHourSelect = (hours: string) => {
@@ -36,7 +36,11 @@ const HoursSelector: React.FC<HoursSelectorProps> = ({
   };
 
   const selectedHourLabel = value 
-    ? hoursOptions.find(option => option.value === value)?.label || `${value} hours`
+    ? (() => {
+        const opt = hoursOptions.find(option => option.value === value);
+        if (!opt) return `${value} hours`;
+        return `${opt.label} · ${opt.includedKm} km included`;
+      })()
     : 'Select Hours';
 
   return (
@@ -66,7 +70,10 @@ const HoursSelector: React.FC<HoursSelectorProps> = ({
                 value === option.value ? 'bg-teal-50 text-teal-900' : 'text-gray-900'
               }`}
             >
-              {option.label}
+              <div className="flex items-center justify-between">
+                <span>{option.label}</span>
+                <span className="text-xs md:text-sm text-gray-600">{option.includedKm} km included</span>
+              </div>
             </button>
           ))}
         </div>

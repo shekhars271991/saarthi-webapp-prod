@@ -10,6 +10,18 @@ import ScheduleSelector from './ScheduleSelector';
 import RideTypeNavigation from './RideTypeNavigation';
 import HoursSelector from './HoursSelector';
 import CarSelector from './CarSelector';
+import axios from 'axios';
+
+// New fare check API endpoint (same as airport transfer)
+const checkFareApi = async (data: any) => {
+  try {
+    const response = await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api'}/fare/check`, data);
+    return response.data;
+  } catch (error) {
+    toast.error('Failed to check fare');
+    throw error;
+  }
+};
 
 // New pricing hook using backend pricing API
 const useHourlyRentalPricing = () => {
@@ -110,6 +122,15 @@ const HourlyRental: React.FC = () => {
   const [distance, setDistance] = useState<string>('');
   const [isGettingLocation, setIsGettingLocation] = useState<boolean>(false);
   const [selectedCarId, setSelectedCarId] = useState<string | null>(null);
+  const [customerName, setCustomerName] = useState<string>('');
+  const [customerPhone, setCustomerPhone] = useState<string>('');
+  
+  // API state variables (similar to airport transfer)
+  const [apiCarOptions, setApiCarOptions] = useState<any[]>([]);
+  const [apiFare, setApiFare] = useState<number | null>(null);
+  const [apiFareLoading, setApiFareLoading] = useState(false);
+  const [apiFareError, setApiFareError] = useState<string | null>(null);
+  const [rideId, setRideId] = useState<string | null>(null);
 
 
   const fromInputRef = useRef<HTMLInputElement>(null);
@@ -139,74 +160,7 @@ const HourlyRental: React.FC = () => {
     loadGoogleMapsScript();
   }, []);
 
-  // Initialize autocomplete with custom dropdown
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const user = localStorage.getItem('user');
-      const pending = localStorage.getItem('pendingHourlyRental');
-      if (user && pending) {
-        try {
-          const data = JSON.parse(pending);
-          setTripType(data.tripType || 'oneway');
-          setLocationFrom(data.locationFrom || '');
-          setLocationTo(data.locationTo || '');
-          setSchedule(data.schedule || '');
-          setPassengers(data.passengers || 2);
-          setSuitcases(data.suitcases || 2);
-          setFlightNumber(data.flightNumber || '132');
-          setFromCoords(data.fromCoords || null);
-          setToCoords(data.toCoords || null);
-          setDistance(data.distance || '');
-          setHours(data.hours || '');
-          // Calculate pricing with restored data using new API
-          (async () => {
-            try {
-              await calculatePrice(
-                Number(data.hours),
-                data.locationFrom,
-                data.fromCoords?.lat || 0,
-                data.fromCoords?.lng || 0,
-                data.locationTo,
-                data.toCoords?.lat,
-                data.toCoords?.lng
-              );
-              
-              // If pricing was successful, also create the ride for backward compatibility
-              if (pricingData && !pricingError) {
-                let userId = '';
-                try {
-                  const parsedUser = JSON.parse(user);
-                  userId = parsedUser._id || '';
-                } catch {}
-                
-                const fareData = await calculateFareHourly(
-                  userId,
-                  Number(data.hours),
-                  data.locationFrom,
-                  data.fromCoords?.lat || 0,
-                  data.fromCoords?.lng || 0,
-                  data.schedule
-                );
-                
-                if (fareData?.ride_id) {
-                  setRideId(fareData.ride_id);
-                }
-                
-                setBookingStep('complete');
-              }
-              
-              localStorage.removeItem('pendingHourlyRental');
-            } catch (error) {
-              console.error('Error restoring hourly rental data:', error);
-              localStorage.removeItem('pendingHourlyRental');
-            }
-          })();
-        } catch {
-          localStorage.removeItem('pendingHourlyRental');
-        }
-      }
-    }
-  }, []);
+  // No longer need pending transfer logic since login is not required
 
   const initializeAutocomplete = () => {
     if (!window.google) return;
@@ -240,10 +194,11 @@ const HourlyRental: React.FC = () => {
 
   // Auto-select first car option when car options are loaded
   useEffect(() => {
-    if (carOptions && carOptions.length > 0 && !selectedCarId) {
-      setSelectedCarId(carOptions[0].id);
+    const currentCarOptions = apiCarOptions.length > 0 ? apiCarOptions : carOptions;
+    if (currentCarOptions && currentCarOptions.length > 0 && !selectedCarId) {
+      setSelectedCarId(currentCarOptions[0].id);
     }
-  }, [carOptions, selectedCarId]);
+  }, [carOptions, apiCarOptions, selectedCarId]);
 
   // Auto-rotate quotes every 5 seconds (for step 1)
 
@@ -470,86 +425,77 @@ const HourlyRental: React.FC = () => {
     }
   };
 
-  const [rideId, setRideId] = useState<string | null>(null);
+  // Handle car selection and update fare
+  const handleCarSelect = (carId: string) => {
+    setSelectedCarId(carId);
+    
+    // Update fare based on selected car from API options
+    if (apiCarOptions.length > 0) {
+      const selectedCar = apiCarOptions.find(car => car.id === carId);
+      if (selectedCar) {
+        setApiFare(selectedCar.fare);
+      }
+    }
+  };
+
   const [showBookingDialog, setShowBookingDialog] = useState(false);
 
   const handleCheckFare = async () => {
-    if (!locationFrom || !schedule || !hours) {
-      alert('Please fill in all required fields.');
+    if (!locationFrom || !schedule || !hours || !customerName || !customerPhone) {
+      alert('Please fill in all required fields including name and phone number.');
       return;
     }
-
-    // Check if user is logged in
-    let user = null;
-    if (typeof window !== 'undefined') {
-      user = localStorage.getItem('user');
-    }
-    if (!user) {
-      // Store form data in localStorage and redirect to login
-      if (typeof window !== 'undefined') {
-        localStorage.setItem(
-          'pendingHourlyRental',
-          JSON.stringify({
-            tripType,
-            locationFrom,
-            locationTo,
-            schedule,
-            passengers,
-            suitcases,
-            flightNumber,
-            fromCoords,
-            toCoords,
-            hours,
-          })
-        );
-        window.location.href = '/login?redirect=hourly-rental';
-      }
+    
+    // Validate phone number format
+    if (!/^\d{10}$/.test(customerPhone)) {
+      alert('Please enter a valid 10-digit phone number.');
       return;
     }
-
-    // Calculate pricing using new backend API
-    await calculatePrice(
-      Number(hours),
-      locationFrom,
-      fromCoords?.lat || 0,
-      fromCoords?.lng || 0,
-      locationTo,
-      toCoords?.lat,
-      toCoords?.lng
-    );
-
-    // If pricing calculation was successful, create the ride
-    if (pricingData && !pricingError) {
-      try {
-        let userId = '';
-        if (user) {
-          const parsed = JSON.parse(user);
-          userId = parsed._id || '';
+    
+    setApiFareLoading(true);
+    setApiFareError(null);
+    try {
+      // Prepare data for new fare check API
+      const finalSelectedCarId = selectedCarId || (apiCarOptions.length > 0 ? apiCarOptions[0].id : undefined);
+      const data = {
+        customer_name: customerName,
+        customer_phone: customerPhone,
+        ride_type: 'hourly',
+        hours: Number(hours),
+        pickup_location: locationFrom,
+        pickup_lat: fromCoords?.lat || 0,
+        pickup_lng: fromCoords?.lng || 0,
+        pickup_datetime: schedule,
+        selected_car_id: finalSelectedCarId
+      };
+      const fareData = await checkFareApi(data);
+      
+      // Handle the new API response format with car_options
+      if (fareData && fareData.car_options && Array.isArray(fareData.car_options)) {
+        setApiCarOptions(fareData.car_options);
+        setRideId(fareData?.ride_id);
+        
+        // Set the fare based on selected car or first car
+        const selectedCar = fareData.car_options.find((car: any) => car.id === selectedCarId) || fareData.car_options[0];
+        if (selectedCar) {
+          setApiFare(selectedCar.fare);
         }
-        
-        // Still need to create the ride using the old API for now
-        const finalSelectedCarId = selectedCarId || (carOptions.length > 0 ? carOptions[0].id : undefined);
-        const fareData = await calculateFareHourly(
-          userId,
-          Number(hours),
-          locationFrom,
-          fromCoords?.lat || 0,
-          fromCoords?.lng || 0,
-          schedule,
-          finalSelectedCarId
-        );
-        
-        if (fareData?.ride_id) {
-          setRideId(fareData.ride_id);
-        }
-        
-        setBookingStep('complete');
-      } catch (err) {
-        toast.error('Failed to create ride booking', {
-          duration: 4000,
-          position: 'top-center',
-        });
+      } else if (fareData && fareData.fare_details) {
+        setApiFare(fareData.fare_details.fare);
+        setRideId(fareData?.ride_id);
+      } else if (fareData && typeof fareData.fare === 'number') {
+        setApiFare(fareData.fare);
+        setRideId(fareData?.ride_id || null);
+      } else if (typeof fareData === 'number') {
+        setApiFare(fareData);
+      } else {
+        setApiFareError('Could not fetch fare from server.');
       }
+      setBookingStep('complete');
+    } catch {
+      setApiFareError('Could not fetch fare from server.');
+    } finally {
+      setApiFareLoading(false);
     }
   };
 
@@ -584,9 +530,11 @@ const HourlyRental: React.FC = () => {
   };
 
    const distanceInKm = calculatedDistance || 0;
-   const selectedCarFare = selectedCarId && carOptions.length > 0 
-     ? carOptions.find(car => car.id === selectedCarId)?.fare || carOptions[0]?.fare || 0
-     : carOptions[0]?.fare || 0;
+   // Calculate selected car fare - prioritize API car options
+   const currentCarOptions = apiCarOptions.length > 0 ? apiCarOptions : carOptions;
+   const selectedCarFare = apiFare !== null ? apiFare : (selectedCarId && currentCarOptions.length > 0 
+     ? currentCarOptions.find(car => car.id === selectedCarId)?.fare || currentCarOptions[0]?.fare || 0
+     : currentCarOptions[0]?.fare || 0);
    const totalAmount = selectedCarFare - discount;
 
 
@@ -619,12 +567,15 @@ const HourlyRental: React.FC = () => {
               <RideTypeNavigation currentType="hourly-rental" />
             </div>
             <h2 className="text-xl md:text-2xl font-semibold mb-4 md:mb-6">{t('hourlyRental')}</h2>
-               <div className="mb-4 md:mb-6">
+               <div className="mb-2">
                  <HoursSelector
                    value={hours}
                    onChange={setHours}
                  />
                </div>
+               <p className="text-xs md:text-sm text-gray-700 bg-yellow-50 border border-yellow-200 rounded-md p-3 mb-4">
+                 For each hour, {`10 km`} is included. Extra time will be charged at ₹150/hour and extra distance at ₹25/km.
+               </p>
 
             <div className="space-y-3 md:space-y-4 mb-4 md:mb-6">
               <div className="relative">
@@ -743,6 +694,42 @@ const HourlyRental: React.FC = () => {
               />
             </div>
 
+            {/* Customer Information */}
+            <div className="bg-[#E7F5F3] p-4 rounded-md mb-4 md:mb-6">
+              <h3 className="text-base font-medium mb-3 text-gray-700">Contact Information</h3>
+              
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Full Name *
+                </label>
+                <input
+                  type="text"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  placeholder="Enter your full name"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-600 focus:border-transparent"
+                  required
+                />
+              </div>
+              
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Phone Number *
+                </label>
+                <input
+                  type="tel"
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  placeholder="Enter 10-digit phone number"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-600 focus:border-transparent"
+                  required
+                />
+                {customerPhone && !/^\d{10}$/.test(customerPhone) && (
+                  <p className="text-red-500 text-xs mt-1">Please enter a valid 10-digit phone number</p>
+                )}
+              </div>
+            </div>
+
             {distance && (
               <div className="mb-4 md:mb-6 p-3 bg-blue-50 rounded-md">
                 <div className="flex items-center justify-between">
@@ -753,12 +740,12 @@ const HourlyRental: React.FC = () => {
             )}
 
             {/* Car Selection */}
-            {carOptions && carOptions.length > 0 && (
+            {(apiCarOptions.length > 0 || (carOptions && carOptions.length > 0)) && (
               <div className="mb-4 md:mb-6">
                 <CarSelector
-                  carOptions={carOptions}
-                  selectedCarId={selectedCarId || carOptions[0]?.id}
-                  onCarSelect={setSelectedCarId}
+                  carOptions={apiCarOptions.length > 0 ? apiCarOptions : carOptions}
+                  selectedCarId={selectedCarId || (apiCarOptions.length > 0 ? apiCarOptions[0]?.id : carOptions[0]?.id)}
+                  onCarSelect={handleCarSelect}
                 />
               </div>
             )}
@@ -820,10 +807,10 @@ const HourlyRental: React.FC = () => {
 
             <button
               onClick={handleCheckFare}
-              className={`w-full bg-[#016B5D] text-white py-3 rounded-full hover:bg-[#014D40] transition-colors font-medium text-sm md:text-base flex items-center justify-center ${pricingLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-              disabled={pricingLoading}
+              className={`w-full bg-[#016B5D] text-white py-3 rounded-full hover:bg-[#014D40] transition-colors font-medium text-sm md:text-base flex items-center justify-center ${apiFareLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              disabled={apiFareLoading}
             >
-              {pricingLoading ? (
+              {apiFareLoading ? (
                 <span className="flex items-center justify-center">
                   <svg
                     className="animate-spin h-5 w-5 mr-2 text-white"
@@ -903,6 +890,18 @@ const HourlyRental: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Car Selection - Moved up */}
+                {(apiCarOptions.length > 0 || (currentCarOptions && currentCarOptions.length > 0)) && (
+                  <div className="mt-4">
+                    <h3 className="text-base font-medium mb-3">Select Your Car</h3>
+                    <CarSelector
+                      carOptions={apiCarOptions.length > 0 ? apiCarOptions : currentCarOptions}
+                      selectedCarId={selectedCarId || (apiCarOptions.length > 0 ? apiCarOptions[0]?.id : currentCarOptions[0]?.id)}
+                      onCarSelect={handleCarSelect}
+                    />
+                  </div>
+                )}
+
                 <div>
                   <h3 className="text-lg font-medium mb-4">Booking policy</h3>
                   <ul className="list-disc pl-5 space-y-3 text-gray-600 text-sm">
@@ -921,7 +920,7 @@ const HourlyRental: React.FC = () => {
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Base fare</span>
                      <span className="font-medium text-gray-800">
-                       {pricingLoading
+                       {apiFareLoading
                          ? 'Loading...'
                          : formatFare(selectedCarFare)}
                      </span>
@@ -951,13 +950,13 @@ const HourlyRental: React.FC = () => {
                       Apply
                     </button>
                   </div>
-                  {pricingError && (
-                    <div className="text-red-600 text-xs">{pricingError}</div>
+                  {apiFareError && (
+                    <div className="text-red-600 text-xs">{apiFareError}</div>
                   )}
                   <div className="flex justify-between pt-4 border-t border-gray-300 mt-4 text-base font-medium">
                     <span>Total Amount</span>
                     <span>
-                      {pricingLoading
+                      {apiFareLoading
                         ? 'Loading...'
                         : formatFare(totalAmount)}
                     </span>
