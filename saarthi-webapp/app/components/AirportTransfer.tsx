@@ -127,6 +127,7 @@ const AirportTransfer: React.FC = () => {
   const [apiFareLoading, setApiFareLoading] = useState(false);
   const [apiFareError, setApiFareError] = useState<string | null>(null);
   const [rideId, setRideId] = useState<string | null>(null);
+  const [apiDistance, setApiDistance] = useState<number | null>(null);
   const [showBookingDialog, setShowBookingDialog] = useState(false);
   const [bookingCompleted, setBookingCompleted] = useState(false);
   const [customerName, setCustomerName] = useState<string>('');
@@ -507,6 +508,11 @@ const AirportTransfer: React.FC = () => {
         setApiCarOptions(fareData.car_options);
         setRideId(fareData?.ride_id);
         
+        // Capture distance from API response
+        if (fareData.distance) {
+          setApiDistance(fareData.distance);
+        }
+        
         // Set the fare based on selected car or first car
         const selectedCar = fareData.car_options.find((car: any) => car.id === selectedCarId) || fareData.car_options[0];
         if (selectedCar) {
@@ -515,9 +521,19 @@ const AirportTransfer: React.FC = () => {
       } else if (fareData && fareData.fare_details) {
         setApiFare(fareData.fare_details.fare);
         setRideId(fareData?.ride_id);
+        
+        // Capture distance from API response
+        if (fareData.distance) {
+          setApiDistance(fareData.distance);
+        }
       } else if (fareData && typeof fareData.fare === 'number') {
         setApiFare(fareData.fare);
         setRideId(fareData?.ride_id || null);
+        
+        // Capture distance from API response
+        if (fareData.distance) {
+          setApiDistance(fareData.distance);
+        }
       } else if (typeof fareData === 'number') {
         setApiFare(fareData);
       } else {
@@ -1059,6 +1075,19 @@ const AirportTransfer: React.FC = () => {
                         <p className="text-base font-medium text-gray-800">{schedule ? formatDateTime(schedule) : '11:40 pm - 13th May'}</p>
                       </div>
                     </div>
+                    
+                    {/* Distance Display */}
+                    {apiDistance && (
+                      <div className="flex items-center bg-[#F5F5F5] p-4 rounded-lg">
+                        <svg className="w-6 h-6 text-gray-500 mr-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                        </svg>
+                        <div>
+                          <p className="text-sm text-gray-500">Distance</p>
+                          <p className="text-base font-medium text-gray-800">{apiDistance.toFixed(1)} km</p>
+                        </div>
+                      </div>
+                    )}
                    
                   </div>
                 </div>

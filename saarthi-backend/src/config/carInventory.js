@@ -1,16 +1,6 @@
 const carInventory = {
   cars: [
-    {
-      id: 'tata_tiago',
-      name: 'Tata Tiago',
-      image: 'tiago.png',
-      type: 'hatchback', 
-      capacity: 4,
-      luggage: 2,
-      fareMultiplier: 1.0,
-      available: true,
-      features: ['AC', 'Music System', 'GPS']
-    },
+   
     {
       id: 'citron_c3',
       name: 'Citroën C3',
@@ -18,7 +8,7 @@ const carInventory = {
       type: 'hatchback',
       capacity: 4,
       luggage: 2,
-      fareMultiplier: 1.2,
+      fareMultiplier: 1,
       available: true,
       features: ['AC', 'Music System', 'GPS']
     }
