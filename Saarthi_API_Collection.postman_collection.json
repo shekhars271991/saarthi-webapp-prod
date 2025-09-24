@@ -1,0 +1,618 @@
+{
+	"info": {
+		"_postman_id": "saarthi-api-collection",
+		"name": "Saarthi EV - API Collection",
+		"description": "Complete API collection for Saarthi EV cab booking platform",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "saarthi-team"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Register User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john.doe@example.com\",\n  \"phone_number\": \"9876543210\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/signup",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"signup"
+							]
+						},
+						"description": "Register a new user. Creates user in unverified state."
+					},
+					"response": []
+				},
+				{
+					"name": "Generate OTP",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"phone_number\": \"9876543210\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/generate-otp",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"generate-otp"
+							]
+						},
+						"description": "Generate OTP for existing user for verification or login."
+					},
+					"response": []
+				},
+				{
+					"name": "Verify OTP",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"phone_number\": \"9876543210\",\n  \"otp\": \"123456\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/verify",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"verify"
+							]
+						},
+						"description": "Verify OTP and mark user as verified."
+					},
+					"response": []
+				},
+				{
+					"name": "Login with OTP",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"phone_number\": \"9876543210\",\n  \"otp\": \"123456\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"login"
+							]
+						},
+						"description": "Login user with OTP verification."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Profile",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"user_id\": \"{{user_id}}\",\n  \"name\": \"John Smith\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/user/update-profile",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"user",
+								"update-profile"
+							]
+						},
+						"description": "Update user profile information."
+					},
+					"response": []
+				}
+			],
+			"description": "Authentication and user management endpoints"
+		},
+		{
+			"name": "Ride Management",
+			"item": [
+				{
+					"name": "Check Fare & Create Ride - Airport Transfer",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"customer_name\": \"John Doe\",\n  \"customer_phone\": \"9876543210\",\n  \"ride_type\": \"airport-transfer\",\n  \"pickup_location\": \"Bodh Gaya, Bihar, India\",\n  \"drop_location\": \"Gaya Airport, Bihar, India\",\n  \"pickup_lat\": 24.6961343,\n  \"pickup_lng\": 84.9869547,\n  \"drop_lat\": 24.7471,\n  \"drop_lng\": 84.9511,\n  \"pickup_datetime\": \"2024-12-25T10:30:00Z\",\n  \"airport_direction\": \"pickup\",\n  \"airport_terminal\": \"T1\",\n  \"selected_car_id\": \"citron_c3\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/fare/check",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"fare",
+								"check"
+							]
+						},
+						"description": "Check fare and create ride for airport transfer. Returns car options with calculated fares."
+					},
+					"response": []
+				},
+				{
+					"name": "Check Fare & Create Ride - Hourly Rental",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"customer_name\": \"John Doe\",\n  \"customer_phone\": \"9876543210\",\n  \"ride_type\": \"hourly\",\n  \"hours\": 4,\n  \"pickup_location\": \"Bodh Gaya, Bihar, India\",\n  \"pickup_lat\": 24.6961343,\n  \"pickup_lng\": 84.9869547,\n  \"pickup_datetime\": \"2024-12-25T10:30:00Z\",\n  \"selected_car_id\": \"citron_c3\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/fare/check",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"fare",
+								"check"
+							]
+						},
+						"description": "Check fare and create ride for hourly rental. Specify hours and pickup location."
+					},
+					"response": []
+				},
+				{
+					"name": "Check Fare & Create Ride - Outstation",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"customer_name\": \"John Doe\",\n  \"customer_phone\": \"9876543210\",\n  \"ride_type\": \"outstation\",\n  \"pickup_location\": \"Bodh Gaya, Bihar, India\",\n  \"drop_location\": \"Patna, Bihar, India\",\n  \"pickup_lat\": 24.6961343,\n  \"pickup_lng\": 84.9869547,\n  \"drop_lat\": 25.5941,\n  \"drop_lng\": 85.1376,\n  \"pickup_datetime\": \"2024-12-25T10:30:00Z\",\n  \"selected_car_id\": \"citron_c3\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/fare/check",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"fare",
+								"check"
+							]
+						},
+						"description": "Check fare and create ride for outstation trip. Requires pickup and drop locations."
+					},
+					"response": []
+				},
+				{
+					"name": "Check Fare & Create Ride - With User ID",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"user_id\": \"{{user_id}}\",\n  \"ride_type\": \"airport-transfer\",\n  \"pickup_location\": \"Bodh Gaya, Bihar, India\",\n  \"drop_location\": \"Gaya Airport, Bihar, India\",\n  \"pickup_lat\": 24.6961343,\n  \"pickup_lng\": 84.9869547,\n  \"drop_lat\": 24.7471,\n  \"drop_lng\": 84.9511,\n  \"pickup_datetime\": \"2024-12-25T10:30:00Z\",\n  \"airport_direction\": \"drop\",\n  \"selected_car_id\": \"citron_c3\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/fare/check",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"fare",
+								"check"
+							]
+						},
+						"description": "Check fare using registered user ID instead of customer details."
+					},
+					"response": []
+				},
+				{
+					"name": "Confirm Booking",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"ride_id\": \"{{ride_id}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/booking/confirm",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"booking",
+								"confirm"
+							]
+						},
+						"description": "Confirm a pending ride booking. Changes status from pending to confirmed."
+					},
+					"response": []
+				},
+				{
+					"name": "List User Rides",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/rides?phone_number=9876543210",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"rides"
+							],
+							"query": [
+								{
+									"key": "phone_number",
+									"value": "9876543210"
+								}
+							]
+						},
+						"description": "Get all rides for a user by phone number."
+					},
+					"response": []
+				},
+				{
+					"name": "Cancel Ride",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"ride_id\": \"{{ride_id}}\",\n  \"reason\": \"Change of plans\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/ride/cancel",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"ride",
+								"cancel"
+							]
+						},
+						"description": "Cancel an existing ride."
+					},
+					"response": []
+				}
+			],
+			"description": "Ride booking, fare calculation, and management endpoints"
+		},
+		{
+			"name": "Pricing",
+			"item": [
+				{
+					"name": "Calculate Pricing - Airport Transfer",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"ride_type\": \"airport-transfer\",\n  \"pickup_location\": \"Bodh Gaya, Bihar, India\",\n  \"drop_location\": \"Gaya Airport, Bihar, India\",\n  \"pickup_lat\": 24.6961343,\n  \"pickup_lng\": 84.9869547,\n  \"drop_lat\": 24.7471,\n  \"drop_lng\": 84.9511,\n  \"selected_airport\": \"gaya\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/pricing/calculate",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"pricing",
+								"calculate"
+							]
+						},
+						"description": "Calculate pricing for airport transfer without creating a ride."
+					},
+					"response": []
+				},
+				{
+					"name": "Calculate Pricing - Hourly Rental",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"ride_type\": \"hourly\",\n  \"pickup_location\": \"Bodh Gaya, Bihar, India\",\n  \"pickup_lat\": 24.6961343,\n  \"pickup_lng\": 84.9869547,\n  \"hours\": 4\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/pricing/calculate",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"pricing",
+								"calculate"
+							]
+						},
+						"description": "Calculate pricing for hourly rental without creating a ride."
+					},
+					"response": []
+				},
+				{
+					"name": "Calculate Pricing - Outstation",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"ride_type\": \"outstation\",\n  \"pickup_location\": \"Bodh Gaya, Bihar, India\",\n  \"drop_location\": \"Patna, Bihar, India\",\n  \"pickup_lat\": 24.6961343,\n  \"pickup_lng\": 84.9869547,\n  \"drop_lat\": 25.5941,\n  \"drop_lng\": 85.1376\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/pricing/calculate",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"pricing",
+								"calculate"
+							]
+						},
+						"description": "Calculate pricing for outstation trip without creating a ride."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Pricing Configuration",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/pricing/config",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"pricing",
+								"config"
+							]
+						},
+						"description": "Get current pricing configuration and rates."
+					},
+					"response": []
+				}
+			],
+			"description": "Pricing calculation endpoints (without creating rides)"
+		},
+		{
+			"name": "Invoice",
+			"item": [
+				{
+					"name": "Generate Invoice",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"ride_id\": \"{{ride_id}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/invoice",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"invoice"
+							]
+						},
+						"description": "Generate invoice for a completed ride."
+					},
+					"response": []
+				}
+			],
+			"description": "Invoice generation endpoints"
+		},
+		{
+			"name": "Testimonials",
+			"item": [
+				{
+					"name": "Get All Testimonials",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/testimonials",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"testimonials"
+							]
+						},
+						"description": "Get all public testimonials."
+					},
+					"response": []
+				}
+			],
+			"description": "Testimonials and reviews endpoints"
+		},
+		{
+			"name": "Health Check",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/health",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"health"
+							]
+						},
+						"description": "Check if the API server is running and healthy."
+					},
+					"response": []
+				},
+				{
+					"name": "API Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/health",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"health"
+							]
+						},
+						"description": "Alternative health check endpoint."
+					},
+					"response": []
+				}
+			],
+			"description": "Health check endpoints"
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:4000",
+			"type": "string",
+			"description": "Base URL for the Saarthi API"
+		},
+		{
+			"key": "user_id",
+			"value": "",
+			"type": "string",
+			"description": "User ID obtained from registration/login"
+		},
+		{
+			"key": "ride_id",
+			"value": "",
+			"type": "string",
+			"description": "Ride ID obtained from fare check"
+		}
+	]
+}

@@ -13,6 +13,7 @@ const validateEnvironmentVariables = () => {
     'HOURLY_PER_HOUR_RATE',
     'HOURLY_PER_KM_RATE',
     'OUTSTATION_PER_KM_RATE',
+    'OUTSTATION_MULTIPLIER',
     'MONGODB_URI'
   ];
   

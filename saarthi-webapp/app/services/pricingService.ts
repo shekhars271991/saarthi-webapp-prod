@@ -160,9 +160,9 @@ export const formatDistance = (distance: number): string => {
 };
 
 /**
- * Get fare breakdown text
+ * Get fare breakdown text from car option breakdown
  */
-export const getFareBreakdownText = (breakdown: PricingResponse['data']['breakdown']): string[] => {
+export const getFareBreakdownText = (breakdown: CarOption['breakdown']): string[] => {
   if (!breakdown) return [];
   
   const lines: string[] = [];
@@ -172,14 +172,30 @@ export const getFareBreakdownText = (breakdown: PricingResponse['data']['breakdo
   }
   
   if (breakdown.distance_fare && breakdown.distance_fare > 0) {
-    lines.push(`Distance (${formatDistance(breakdown.distance_km)}): ${formatFare(breakdown.distance_fare)}`);
+    const distanceText = breakdown.distance_km ? formatDistance(breakdown.distance_km) : 'Distance';
+    lines.push(`Distance (${distanceText}): ${formatFare(breakdown.distance_fare)}`);
   }
   
   if (breakdown.hourly_fare && breakdown.hourly_fare > 0 && breakdown.hours) {
     lines.push(`Hourly (${breakdown.hours}h): ${formatFare(breakdown.hourly_fare)}`);
   }
   
-  lines.push(`Total: ${formatFare(breakdown.total_fare)}`);
+  if (breakdown.total_fare) {
+    lines.push(`Total: ${formatFare(breakdown.total_fare)}`);
+  }
+  
+  // Fallback to string-based breakdown if available
+  if (breakdown.baseFare) {
+    lines.push(`Base Fare: ${breakdown.baseFare}`);
+  }
+  
+  if (breakdown.distanceFare) {
+    lines.push(`Distance: ${breakdown.distanceFare}`);
+  }
+  
+  if (breakdown.total) {
+    lines.push(`Total: ${breakdown.total}`);
+  }
   
   return lines;
 };

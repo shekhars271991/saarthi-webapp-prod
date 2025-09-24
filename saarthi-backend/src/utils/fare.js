@@ -15,6 +15,7 @@ exports.calcFare = ({ type, distance = 0, hours = 0 }) => {
   const HOURLY_PER_HOUR_RATE = parseInt(process.env.HOURLY_PER_HOUR_RATE);
   const HOURLY_PER_KM_RATE = parseInt(process.env.HOURLY_PER_KM_RATE);
   const OUTSTATION_PER_KM_RATE = parseInt(process.env.OUTSTATION_PER_KM_RATE);
+  const OUTSTATION_MULTIPLIER = parseFloat(process.env.OUTSTATION_MULTIPLIER);
   
   // Check for missing environment variables
   const missingVars = [];
@@ -23,6 +24,7 @@ exports.calcFare = ({ type, distance = 0, hours = 0 }) => {
   if (isNaN(HOURLY_PER_HOUR_RATE)) missingVars.push('HOURLY_PER_HOUR_RATE');
   if (isNaN(HOURLY_PER_KM_RATE)) missingVars.push('HOURLY_PER_KM_RATE');
   if (isNaN(OUTSTATION_PER_KM_RATE)) missingVars.push('OUTSTATION_PER_KM_RATE');
+  if (isNaN(OUTSTATION_MULTIPLIER)) missingVars.push('OUTSTATION_MULTIPLIER');
   
   if (missingVars.length > 0) {
     const error = `Missing or invalid environment variables: ${missingVars.join(', ')}. Please check your .env file.`;
@@ -35,7 +37,8 @@ exports.calcFare = ({ type, distance = 0, hours = 0 }) => {
     AIRPORT_PER_KM_RATE,
     HOURLY_PER_HOUR_RATE,
     HOURLY_PER_KM_RATE,
-    OUTSTATION_PER_KM_RATE
+    OUTSTATION_PER_KM_RATE,
+    OUTSTATION_MULTIPLIER
   });
 
   let fare = 0;
@@ -52,8 +55,8 @@ exports.calcFare = ({ type, distance = 0, hours = 0 }) => {
       break;
       
     case 'outstation':
-      // Outstation = distance * 2 * 15
-      fare = distance * 2 * OUTSTATION_PER_KM_RATE;
+      // Outstation = distance * OUTSTATION_PER_KM_RATE * OUTSTATION_MULTIPLIER
+      fare = distance * OUTSTATION_PER_KM_RATE * OUTSTATION_MULTIPLIER;
       break;
       
     default:
@@ -104,6 +107,7 @@ const getFareBreakdown = ({ type, distance, hours, fare }) => {
   const HOURLY_PER_HOUR_RATE = parseInt(process.env.HOURLY_PER_HOUR_RATE);
   const HOURLY_PER_KM_RATE = parseInt(process.env.HOURLY_PER_KM_RATE);
   const OUTSTATION_PER_KM_RATE = parseInt(process.env.OUTSTATION_PER_KM_RATE);
+  const OUTSTATION_MULTIPLIER = parseFloat(process.env.OUTSTATION_MULTIPLIER);
   
   // Check for missing environment variables
   const missingVars = [];
@@ -112,6 +116,7 @@ const getFareBreakdown = ({ type, distance, hours, fare }) => {
   if (isNaN(HOURLY_PER_HOUR_RATE)) missingVars.push('HOURLY_PER_HOUR_RATE');
   if (isNaN(HOURLY_PER_KM_RATE)) missingVars.push('HOURLY_PER_KM_RATE');
   if (isNaN(OUTSTATION_PER_KM_RATE)) missingVars.push('OUTSTATION_PER_KM_RATE');
+  if (isNaN(OUTSTATION_MULTIPLIER)) missingVars.push('OUTSTATION_MULTIPLIER');
   
   if (missingVars.length > 0) {
     const error = `Missing or invalid environment variables in getFareBreakdown: ${missingVars.join(', ')}. Please check your .env file.`;
@@ -138,8 +143,8 @@ const getFareBreakdown = ({ type, distance, hours, fare }) => {
       break;
       
     case 'outstation':
-      breakdown.distanceFare = `₹${distance * 2 * OUTSTATION_PER_KM_RATE} (${distance} km × 2 × ₹${OUTSTATION_PER_KM_RATE}/km)`;
-      breakdown.formula = `Round Trip Distance Fare = ${distance} km × 2 × ₹${OUTSTATION_PER_KM_RATE}/km`;
+      breakdown.distanceFare = `₹${distance * OUTSTATION_PER_KM_RATE * OUTSTATION_MULTIPLIER} (${distance} km × ₹${OUTSTATION_PER_KM_RATE}/km × ${OUTSTATION_MULTIPLIER})`;
+      breakdown.formula = `Outstation Fare = ${distance} km × ₹${OUTSTATION_PER_KM_RATE}/km × ${OUTSTATION_MULTIPLIER}`;
       break;
   }
 

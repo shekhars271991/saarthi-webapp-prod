@@ -54,6 +54,8 @@ const Outstation: React.FC = () => {
   const [toSuggestions, setToSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([]);
   const [distance, setDistance] = useState<string>('');
   const [isGettingLocation, setIsGettingLocation] = useState<boolean>(false);
+  const [customerName, setCustomerName] = useState<string>('');
+  const [customerPhone, setCustomerPhone] = useState<string>('');
 
 
   const fromInputRef = useRef<HTMLInputElement>(null);
@@ -84,90 +86,7 @@ const Outstation: React.FC = () => {
     loadGoogleMapsScript();
   }, []);
 
-  // Initialize autocomplete with custom dropdown
-useEffect(() => {
-  if (typeof window !== 'undefined') {
-    const user = localStorage.getItem('user');
-    const pending = localStorage.getItem('pendingOutstation');
-
-    if (user && pending) {
-      try {
-        const data = JSON.parse(pending);
-        // Set state with fallback values
-        setTripType(data.tripType || 'oneway');
-        setLocationFrom(data.locationFrom || '');
-        setLocationTo(data.locationTo || '');
-        setSchedule(data.schedule || '');
-        setPassengers(data.passengers || 2);
-        setSuitcases(data.suitcases || 2);
-        setFlightNumber(data.flightNumber || '132');
-        setFromCoords(data.fromCoords || null);
-        setToCoords(data.toCoords || null);
-        setDistance(data.distance || '');
-
-        // Async function to check fare
-        (async () => {
-          setApiFareLoading(true);
-          setApiFareError(null);
-
-          let phoneNumber = '';
-          let userId = '';
-
-          // Parse user data
-          try {
-            const parsedUser = JSON.parse(user);
-            userId = parsedUser?._id || '';
-            phoneNumber = parsedUser?.phoneNumber || '';
-          } catch (error) {
-            console.error('Error parsing user data:', error);
-          }
-
-          // Prepare payload for API call
-          const dataPayload = {
-            user_id: userId,
-            ride_type: 'outstation',
-            hours: 0,
-            pickup_location: data.locationFrom || '',
-            drop_location: data.locationTo || '', // Fixed: Use data.locationTo instead of undefined locationTo
-            pickup_lat: data.fromCoords?.lat || 0,
-            pickup_lng: data.fromCoords?.lng || 0,
-            drop_lat: data.toCoords?.lat || 0,
-            drop_lng: data.toCoords?.lng || 0,
-            pickup_datetime: data.schedule || '',
-          };
-
-          try {
-            // Ensure checkFareApi is defined and properly imported
-            const fareData = await checkFareApi(dataPayload); // Fixed: Pass dataPayload to API call
-            if (fareData?.fare_details?.fare) {
-              setApiFare(fareData.fare_details.fare);
-              setRideId(fareData.ride_id || null);
-            } else if (typeof fareData?.fare === 'number') {
-              setApiFare(fareData.fare);
-              setRideId(fareData.ride_id || null);
-            } else if (typeof fareData === 'number') {
-              setApiFare(fareData);
-              setRideId(null);
-            } else {
-              setApiFareError('Invalid fare data received from server.');
-            }
-            setBookingStep('complete');
-          } catch (error) {
-            console.error('Error fetching fare:', error);
-            setApiFareError('Could not fetch fare from server.');
-          } finally {
-            setApiFareLoading(false);
-            localStorage.removeItem('pendingOutstation');
-          }
-        })();
-      } catch (error) {
-        console.error('Error processing pending outstation data:', error);
-        setApiFareError('Failed to process booking data.');
-        localStorage.removeItem('pendingOutstation');
-      }
-    }
-  }
-}, []);
+  // No longer need pending transfer logic since login is not required
 
   const initializeAutocomplete = () => {
     if (!window.google) return;
@@ -431,48 +350,23 @@ useEffect(() => {
   const [showBookingDialog, setShowBookingDialog] = useState(false);
 
   const handleCheckFare = async () => {
-    if (!locationFrom || !locationTo || !schedule) {
-      alert('Please fill in all required fields.');
+    if (!locationFrom || !locationTo || !schedule || !customerName || !customerPhone) {
+      alert('Please fill in all required fields including name and phone number.');
       return;
     }
-    let user = null;
-    if (typeof window !== 'undefined') {
-      user = localStorage.getItem('user');
-    }
-    if (!user) {
-      // Store form data in localStorage and redirect to login
-      if (typeof window !== 'undefined') {
-        localStorage.setItem(
-          'pendingOutstation',
-          JSON.stringify({
-            tripType,
-            locationFrom,
-            locationTo,
-            schedule,
-            passengers,
-            suitcases,
-            flightNumber,
-            fromCoords,
-            toCoords,
-          })
-        );
-        window.location.href = '/login?redirect=outstation';
-      }
+    
+    // Validate phone number format
+    if (!/^\d{10}$/.test(customerPhone)) {
+      alert('Please enter a valid 10-digit phone number.');
       return;
     }
     setApiFareLoading(true);
     setApiFareError(null);
     try {
-      let phoneNumber = '';
-      let userId = '';
-      if (user) {
-        const parsed = JSON.parse(user);
-        phoneNumber = parsed.phoneNumber || '';
-        userId = parsed._id || '';
-      }
       // Prepare data for new fare check API
       const data = {
-        user_id: userId,
+        customer_name: customerName,
+        customer_phone: customerPhone,
         ride_type: 'outstation',
         hours: 0,
         pickup_location: locationFrom,
@@ -709,6 +603,42 @@ useEffect(() => {
                 onChange={setSchedule}
                 label={t('schedule')}
               />
+            </div>
+
+            {/* Customer Information */}
+            <div className="bg-[#E7F5F3] p-4 rounded-md mb-4 md:mb-6">
+              <h3 className="text-base font-medium mb-3 text-gray-700">Contact Information</h3>
+              
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Full Name *
+                </label>
+                <input
+                  type="text"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  placeholder="Enter your full name"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-600 focus:border-transparent"
+                  required
+                />
+              </div>
+              
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Phone Number *
+                </label>
+                <input
+                  type="tel"
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  placeholder="Enter 10-digit phone number"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-600 focus:border-transparent"
+                  required
+                />
+                {customerPhone && !/^\d{10}$/.test(customerPhone) && (
+                  <p className="text-red-500 text-xs mt-1">Please enter a valid 10-digit phone number</p>
+                )}
+              </div>
             </div>
 
             {distance && (
