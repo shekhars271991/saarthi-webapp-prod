@@ -10,8 +10,8 @@ saarthi.pem
 # Monorepo specific
 saarthi-backend/node_modules/
 saarthi-webapp/node_modules/
-saarthi-backend/.env*
-saarthi-webapp/.env*
+saarthi-backend/.env
+saarthi-webapp/.env
 
 # Environment variables (also covered in monorepo section above)
 
